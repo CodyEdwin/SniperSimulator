@@ -41,12 +41,12 @@ tasks.named('shadowJar') {
     exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
 }
 
-def jpackageExecutable = file("${System.getProperty('java.home')}/bin/jpackage")
+def desktopOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows'
+        : (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('mac') ? 'macos' : 'linux')
+def jpackageExecutable = file("${System.getProperty('java.home')}/bin/jpackage${desktopOs == 'windows' ? '.exe' : ''}")
 def shadowJarFile = tasks.named('shadowJar').flatMap { it.archiveFile }
 def jpackageInputDir = layout.buildDirectory.dir('jpackage-input')
 def jpackageOutputDir = layout.buildDirectory.dir('package')
-def desktopOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows'
-        : (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('mac') ? 'macos' : 'linux')
 def desktopArch = System.getProperty('os.arch') == 'aarch64' ? 'arm64' : 'x64'
 
 tasks.register('jpackageInput', Sync) {
@@ -88,7 +88,7 @@ tasks.register('desktopZip', Zip) {
     archiveFileName = "DaggerRidge-${project.version}-${desktopOs}-${desktopArch}.zip"
     destinationDirectory = layout.buildDirectory.dir('distributions')
     from(jpackageOutputDir) {
-        include 'DaggerRidge/**'
+        include 'DaggerRidge*/**'
     }
 }
 
