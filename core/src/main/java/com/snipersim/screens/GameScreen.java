@@ -186,7 +186,9 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean mouseMoved(int screenX, int screenY) {
-            if (android) {
+            // With pointer capture the system sends relative deltas to the
+            // capture listener instead, and the cursor cannot reach an edge.
+            if (android && !LookInput.isPointerCaptured()) {
                 if (mouseSeen) {
                     float dx = screenX - lastMouseX;
                     float dy = screenY - lastMouseY;
@@ -273,6 +275,7 @@ public final class GameScreen extends ScreenAdapter {
             Gdx.input.getDeltaX();
             Gdx.input.getDeltaY();
             LookInput.consume(lookDelta);
+            LookInput.consumeScroll();
         }
 
         updateBreathing(delta);
@@ -285,7 +288,8 @@ public final class GameScreen extends ScreenAdapter {
         if (interactive) {
             handleGameplayInput(delta);
         } else {
-            prevLeft = Gdx.input.isButtonPressed(Input.Buttons.LEFT);
+            prevLeft = isLeftPressed();
+            LookInput.clearJustPressed();
         }
 
         if (!paused) {
@@ -316,6 +320,9 @@ public final class GameScreen extends ScreenAdapter {
     private void handleGlobalInput() {
         boolean start = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                 || (android && Gdx.input.justTouched());
+        if (android && briefing && LookInput.consumeJustPressed(Input.Buttons.LEFT)) {
+            start = true;
+        }
         if (start && briefing) {
             briefing = false;
             if (!smokeTest) {
@@ -350,8 +357,12 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
         if (paused && !briefing) {
-            boolean left = Gdx.input.isButtonPressed(Input.Buttons.LEFT);
-            if (left && !prevLeft) {
+            boolean left = isLeftPressed();
+            boolean clicked = left && !prevLeft;
+            if (android) {
+                clicked |= LookInput.consumeJustPressed(Input.Buttons.LEFT);
+            }
+            if (clicked) {
                 paused = false;
                 captureMouse();
                 prevLeft = true;
@@ -374,6 +385,16 @@ public final class GameScreen extends ScreenAdapter {
         }
         pitch = MathUtils.clamp(pitch, -0.38f, 0.38f);
         yaw = wrapAngle(yaw);
+    }
+
+    private boolean isLeftPressed() {
+        return Gdx.input.isButtonPressed(Input.Buttons.LEFT)
+                || (android && LookInput.isButtonPressed(Input.Buttons.LEFT));
+    }
+
+    private boolean isRightPressed() {
+        return Gdx.input.isButtonPressed(Input.Buttons.RIGHT)
+                || (android && LookInput.isButtonPressed(Input.Buttons.RIGHT));
     }
 
     private void handleGameplayInput(float delta) {
@@ -418,6 +439,11 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
 
+        float wheel = LookInput.consumeScroll();
+        if (wheel != 0) {
+            pendingZoom += wheel > 0 ? -1 : 1;
+        }
+
         if (pendingZoom != 0) {
             zoom = BallisticMath.clamp(zoom + pendingZoom, weapon.scopeMinZoom, weapon.scopeMaxZoom);
             pendingZoom = 0;
@@ -453,8 +479,11 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
 
-        boolean left = Gdx.input.isButtonPressed(Input.Buttons.LEFT);
+        boolean left = isLeftPressed();
         boolean justClicked = left && !prevLeft;
+        if (android) {
+            justClicked |= LookInput.consumeJustPressed(Input.Buttons.LEFT);
+        }
         prevLeft = left;
         if (justClicked) {
             fire();
@@ -484,7 +513,7 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void updateScope(float delta, boolean interactive) {
-        scopedInput = interactive && Gdx.input.isButtonPressed(Input.Buttons.RIGHT);
+        scopedInput = interactive && isRightPressed();
         if (smokeTest && frame > 5) {
             scopedInput = true;
         }
