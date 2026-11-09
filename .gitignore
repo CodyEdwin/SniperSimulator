@@ -1,0 +1,13 @@
+.gradle/
+build/
+*/build/
+out/
+local.properties
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+generated-audio/
+assets/generated-audio/
+android/libs/

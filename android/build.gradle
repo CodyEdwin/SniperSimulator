@@ -1,0 +1,89 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.snipersim.android'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.snipersim.android'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = [rootProject.file('assets').absolutePath]
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+}
+
+configurations {
+    natives
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
+
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
+    natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
+}
+
+tasks.register('copyAndroidNatives') {
+    group = 'android'
+    description = 'Unpacks libGDX and FreeType native libraries into jniLibs.'
+    doFirst {
+        def abis = ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
+        delete file('libs')
+        abis.each { file("libs/$it").mkdirs() }
+        configurations.natives.files.each { jar ->
+            // Match the suffix exactly: "natives-x86" is a prefix of
+            // "natives-x86_64" and would otherwise put a 64-bit library
+            // into the 32-bit ABI folder.
+            def abi = abis.find { jar.name.contains("natives-${it}.jar") }
+            if (abi != null) {
+                copy {
+                    from zipTree(jar)
+                    into file("libs/$abi")
+                    include '**/*.so'
+                }
+            }
+        }
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name.contains('merge') && task.name.contains('JniLibFolders')) {
+        task.dependsOn 'copyAndroidNatives'
+    }
+}

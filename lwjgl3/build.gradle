@@ -1,0 +1,117 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    runtimeOnly "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    runtimeOnly "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+}
+
+application {
+    mainClass = 'com.snipersim.lwjgl3.Lwjgl3Launcher'
+}
+
+sourceSets.main.resources.srcDirs += rootProject.file('assets')
+
+tasks.named('run', JavaExec) {
+    workingDir = rootProject.file('assets')
+    standardInput = System.in
+    ignoreExitValue = true
+}
+
+tasks.named('jar', Jar) {
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+}
+
+tasks.named('shadowJar') {
+    archiveBaseName = 'DaggerRidge'
+    archiveClassifier = ''
+    archiveVersion = project.version
+    mergeServiceFiles()
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+    // Signed dependency jars contain signature files that cannot survive
+    // repackaging; dropping them keeps the fat jar loadable.
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+}
+
+def jpackageExecutable = file("${System.getProperty('java.home')}/bin/jpackage")
+def shadowJarFile = tasks.named('shadowJar').flatMap { it.archiveFile }
+def jpackageInputDir = layout.buildDirectory.dir('jpackage-input')
+def jpackageOutputDir = layout.buildDirectory.dir('package')
+def desktopOs = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win') ? 'windows'
+        : (System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('mac') ? 'macos' : 'linux')
+def desktopArch = System.getProperty('os.arch') == 'aarch64' ? 'arm64' : 'x64'
+
+tasks.register('jpackageInput', Sync) {
+    group = 'distribution'
+    description = 'Stages the fat jar for jpackage.'
+    dependsOn tasks.named('shadowJar')
+    from(shadowJarFile)
+    into(jpackageInputDir)
+}
+
+tasks.register('desktopAppImage', Exec) {
+    group = 'distribution'
+    description = 'Builds a self-contained native app image for the current OS (bundled JRE).'
+    dependsOn tasks.named('jpackageInput')
+    doFirst {
+        if (!jpackageExecutable.exists()) {
+            throw new GradleException('jpackage was not found. Run this task with JDK 17 or newer.')
+        }
+        delete jpackageOutputDir
+        jpackageOutputDir.get().asFile.mkdirs()
+    }
+    executable = jpackageExecutable
+    args '--type', 'app-image',
+            '--name', 'DaggerRidge',
+            '--app-version', project.version.toString(),
+            '--vendor', 'Dagger Ridge',
+            '--description', '3D long-range sniper simulation',
+            '--dest', jpackageOutputDir.get().asFile.absolutePath,
+            '--input', jpackageInputDir.get().asFile.absolutePath,
+            '--main-jar', shadowJarFile.get().asFile.name,
+            '--main-class', application.mainClass.get(),
+            '--java-options', '-Xmx2g'
+}
+
+tasks.register('desktopZip', Zip) {
+    group = 'distribution'
+    description = 'Zips the self-contained app image for the current OS and architecture.'
+    dependsOn tasks.named('desktopAppImage')
+    archiveFileName = "DaggerRidge-${project.version}-${desktopOs}-${desktopArch}.zip"
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from(jpackageOutputDir) {
+        include 'DaggerRidge/**'
+    }
+}
+
+tasks.register('desktopInstaller', Exec) {
+    group = 'distribution'
+    description = 'Builds the native installer for the current OS (msi, dmg or deb).'
+    dependsOn tasks.named('jpackageInput')
+    doFirst {
+        if (!jpackageExecutable.exists()) {
+            throw new GradleException('jpackage was not found. Run this task with JDK 17 or newer.')
+        }
+        file("${layout.buildDirectory.get().asFile}/installers").mkdirs()
+    }
+    def installerType = desktopOs == 'windows' ? 'msi' : (desktopOs == 'macos' ? 'dmg' : 'deb')
+    executable = jpackageExecutable
+    args '--type', installerType,
+            '--name', 'DaggerRidge',
+            '--app-version', project.version.toString(),
+            '--vendor', 'Dagger Ridge',
+            '--description', '3D long-range sniper simulation',
+            '--dest', "${layout.buildDirectory.get().asFile}/installers",
+            '--input', jpackageInputDir.get().asFile.absolutePath,
+            '--main-jar', shadowJarFile.get().asFile.name,
+            '--main-class', application.mainClass.get(),
+            '--java-options', '-Xmx2g'
+}

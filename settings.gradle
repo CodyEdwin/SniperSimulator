@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+rootProject.name = 'dagger-ridge'
+
+include 'core', 'lwjgl3', 'android'
