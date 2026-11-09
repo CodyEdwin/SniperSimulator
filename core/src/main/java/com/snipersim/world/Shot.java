@@ -15,6 +15,7 @@ public final class Shot {
     public final float hitTime;
     public final Vector3 impactPoint = new Vector3();
     public final Vector3 impactVelocity = new Vector3();
+    public final Vector3 muzzle = new Vector3();
     public final int points;
     public final float distance;
     public final float impactMissionTime;

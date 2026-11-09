@@ -147,6 +147,10 @@ public final class SceneRenderer {
         effects.spawnMuzzleSmoke(rifle.muzzleWorld());
     }
 
+    public Vector3 muzzleWorld() {
+        return rifle.muzzleWorld();
+    }
+
     public void clearEffects() {
         effects.clear();
     }

@@ -194,9 +194,22 @@ public final class Effects {
         float prevX = 0;
         float prevY = 0;
         boolean hasPrev = false;
+        // Start at the rifle muzzle. The ballistic origin sits on the scope
+        // line and the sight-height offset is exaggerated at point-blank
+        // range, which made tracers appear to start well below the shot.
+        if (shot.muzzle.len2() > 0 && project(camera, shot.muzzle, width, height)) {
+            prevX = projected.x;
+            prevY = projected.y;
+            hasPrev = true;
+        }
         for (int i = 0; i < shot.trajectory.size(); i += stride) {
             if (shot.trajectory.time(i) > maxTime) {
                 break;
+            }
+            float dx = shot.trajectory.x(i) - shot.trajectory.originX;
+            float dz = shot.trajectory.z(i) - shot.trajectory.originZ;
+            if (Math.hypot(dx, dz) < 18f) {
+                continue;
             }
             toPoint.set(shot.trajectory.x(i), shot.trajectory.y(i), shot.trajectory.z(i));
             if (!project(camera, toPoint, width, height)) {

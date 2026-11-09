@@ -2,8 +2,10 @@ package com.snipersim.android;
 
 import android.os.Bundle;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
+import com.badlogic.gdx.backends.android.AndroidGraphics;
 import com.snipersim.SniperGame;
 
 /** Android entry point. All simulation and rendering lives in the shared core. */
@@ -21,5 +23,13 @@ public final class AndroidLauncher extends AndroidApplication {
         config.numSamples = 0;
 
         initialize(new SniperGame(false), config);
+        installInput();
+    }
+
+    private void installInput() {
+        AndroidGraphics graphics = (AndroidGraphics) Gdx.graphics;
+        graphics.getView().setFocusable(true);
+        graphics.getView().setFocusableInTouchMode(true);
+        graphics.getView().requestFocus();
     }
 }

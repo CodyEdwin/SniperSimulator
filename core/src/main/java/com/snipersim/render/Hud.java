@@ -1,5 +1,6 @@
 package com.snipersim.render;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -37,6 +38,7 @@ public final class Hud {
     private final ShapeRenderer shapes;
     private final BitmapFont font;
     private final BitmapFont bold;
+    private final float textScale;
     private final FreeTypeFontGenerator regularGenerator;
     private final FreeTypeFontGenerator boldGenerator;
     private final Texture pixel;
@@ -45,6 +47,7 @@ public final class Hud {
     private int height;
 
     public Hud() {
+        textScale = Gdx.app.getType() == Application.ApplicationType.Android ? 1.12f : 1f;
         batch = new SpriteBatch();
         shapes = new ShapeRenderer();
         Pixmap pixmap = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
@@ -728,15 +731,16 @@ public final class Hud {
 
     private void textTop(String text, float x, float topY, float size, Color color, boolean isBold) {
         BitmapFont f = isBold ? bold : font;
-        f.getData().setScale(size / 64f);
+        float scaled = size * textScale;
+        f.getData().setScale(scaled / 64f);
         f.setColor(0, 0, 0, color.a * 0.55f);
-        f.draw(batch, text, x + 1.2f, topY - size * 0.78f - 1.2f);
+        f.draw(batch, text, x + 1.2f, topY - scaled * 0.78f - 1.2f);
         f.setColor(color);
-        f.draw(batch, text, x, topY - size * 0.78f);
+        f.draw(batch, text, x, topY - scaled * 0.78f);
     }
 
     private void textCentered(String text, float cx, float topY, float size, Color color, boolean isBold) {
-        float widthEstimate = text.length() * size * 0.602f;
+        float widthEstimate = text.length() * size * textScale * 0.602f;
         textTop(text, cx - widthEstimate * 0.5f, topY, size, color, isBold);
     }
 

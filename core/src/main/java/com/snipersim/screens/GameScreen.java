@@ -1,5 +1,6 @@
 package com.snipersim.screens;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputAdapter;
@@ -9,6 +10,7 @@ import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.collision.BoundingBox;
 import com.badlogic.gdx.math.RandomXS128;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.snipersim.SniperGame;
 import com.snipersim.audio.ProceduralAudio;
@@ -17,6 +19,7 @@ import com.snipersim.ballistics.BallisticsEngine;
 import com.snipersim.ballistics.Trajectory;
 import com.snipersim.ballistics.WindModel;
 import com.snipersim.ballistics.ZeroSolver;
+import com.snipersim.input.LookInput;
 import com.snipersim.render.Hud;
 import com.snipersim.render.HudState;
 import com.snipersim.render.SceneRenderer;
@@ -43,6 +46,7 @@ public final class GameScreen extends ScreenAdapter {
 
     private final SniperGame game;
     private final boolean smokeTest;
+    private final boolean android;
     private final World world;
     private final SceneRenderer renderer;
     private final ScopeRenderer scopeRenderer;
@@ -105,6 +109,13 @@ public final class GameScreen extends ScreenAdapter {
     private boolean helpVisible;
     private boolean cursorCaptured;
     private boolean prevLeft;
+    private final Vector2 lookDelta = new Vector2();
+    private float lastPointerX;
+    private float lastPointerY;
+    private float lastMouseX;
+    private float lastMouseY;
+    private boolean pointerDown;
+    private boolean mouseSeen;
     private int turretCooldown;
     private int pendingZoom;
 
@@ -135,11 +146,67 @@ public final class GameScreen extends ScreenAdapter {
             }
             return true;
         }
+
+        @Override
+        public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (android && pointer == 0) {
+                lastPointerX = screenX;
+                lastPointerY = screenY;
+                lastMouseX = screenX;
+                lastMouseY = screenY;
+                pointerDown = true;
+                mouseSeen = true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean touchDragged(int screenX, int screenY, int pointer) {
+            if (android && pointer == 0) {
+                if (pointerDown) {
+                    LookInput.addDelta(screenX - lastPointerX, screenY - lastPointerY);
+                }
+                lastPointerX = screenX;
+                lastPointerY = screenY;
+                lastMouseX = screenX;
+                lastMouseY = screenY;
+                pointerDown = true;
+                mouseSeen = true;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+            if (android && pointer == 0) {
+                pointerDown = false;
+            }
+            return false;
+        }
+
+        @Override
+        public boolean mouseMoved(int screenX, int screenY) {
+            if (android) {
+                if (mouseSeen) {
+                    float dx = screenX - lastMouseX;
+                    float dy = screenY - lastMouseY;
+                    // Ignore teleport-sized jumps when the pointer re-enters.
+                    if (Math.abs(dx) < 300 && Math.abs(dy) < 300) {
+                        LookInput.addDelta(dx, dy);
+                    }
+                }
+                lastMouseX = screenX;
+                lastMouseY = screenY;
+                mouseSeen = true;
+            }
+            return false;
+        }
     };
 
     public GameScreen(SniperGame game, boolean smokeTest) {
         this.game = game;
         this.smokeTest = smokeTest;
+        this.android = Gdx.app.getType() == Application.ApplicationType.Android;
         world = new World();
         shooterEye = new Vector3(world.shooterEye);
         camera = new PerspectiveCamera(BASE_FOV, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -205,6 +272,7 @@ public final class GameScreen extends ScreenAdapter {
         } else {
             Gdx.input.getDeltaX();
             Gdx.input.getDeltaY();
+            LookInput.consume(lookDelta);
         }
 
         updateBreathing(delta);
@@ -246,12 +314,15 @@ public final class GameScreen extends ScreenAdapter {
     // ------------------------------------------------------------- input
 
     private void handleGlobalInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ENTER)) {
-            if (briefing) {
-                briefing = false;
-                if (!smokeTest) {
-                    captureMouse();
-                }
+        boolean start = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
+                || (android && Gdx.input.justTouched());
+        if (start && briefing) {
+            briefing = false;
+            if (!smokeTest) {
+                captureMouse();
+            }
+            if (android) {
+                prevLeft = true;
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -293,8 +364,14 @@ public final class GameScreen extends ScreenAdapter {
             return;
         }
         float sensitivity = 0.0019f * (camera.fieldOfView / BASE_FOV);
-        yaw += Gdx.input.getDeltaX() * sensitivity;
-        pitch -= Gdx.input.getDeltaY() * sensitivity;
+        if (android) {
+            LookInput.consume(lookDelta);
+            yaw += lookDelta.x * sensitivity;
+            pitch -= lookDelta.y * sensitivity;
+        } else {
+            yaw += Gdx.input.getDeltaX() * sensitivity;
+            pitch -= Gdx.input.getDeltaY() * sensitivity;
+        }
         pitch = MathUtils.clamp(pitch, -0.38f, 0.38f);
         yaw = wrapAngle(yaw);
     }
@@ -534,6 +611,7 @@ public final class GameScreen extends ScreenAdapter {
         shotCount++;
         Shot shot = new Shot(weapon, trajectory, fireMissionTime, muzzleVelocity,
                 hitTarget, ring, hitTime, impactPoint, impactVelocity, points, distance, ammoAfter);
+        shot.muzzle.set(renderer.muzzleWorld());
         shots.add(shot);
         if (shots.size() > 14) {
             Shot removed = shots.remove(0);
