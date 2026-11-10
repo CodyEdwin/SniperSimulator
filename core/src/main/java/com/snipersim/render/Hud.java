@@ -12,6 +12,7 @@ import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.MathUtils;
 import com.snipersim.ballistics.BallisticTable;
+import com.snipersim.input.TouchLayout;
 import com.snipersim.util.BallisticMath;
 import com.snipersim.weapons.Weapon;
 import com.snipersim.weapons.WeaponCatalog;
@@ -141,6 +142,9 @@ public final class Hud {
                     batch.draw(pixel, 0, 0, width, height);
                     batch.setColor(Color.WHITE);
                 }
+                if (s.touchControls) {
+                    drawTouchControls(u);
+                }
             }
         }
         batch.end();
@@ -151,8 +155,8 @@ public final class Hud {
     // ---------------------------------------------------------------- panels
 
     private void drawWeaponPanel(HudState s, float u, float m, float top) {
-        float w = 350 * u;
-        float h = 194 * u;
+        float w = 390 * u;
+        float h = 228 * u;
         float x = m;
         float y = top - h;
         panel(x, y, w, h, BG, 1f);
@@ -164,43 +168,30 @@ public final class Hud {
         batch.draw(pixel, x, y, 4 * u, h);
         batch.setColor(Color.WHITE);
 
-        textTop(weapon.name, x + 16 * u, top - 12 * u, 25 * u, WHITE, true);
-        textTop(weapon.designation, x + 16 * u, top - 44 * u, 13 * u, DIM, false);
-        textTop(weapon.caliber, x + 16 * u, top - 62 * u, 15 * u, weapon.accent, true);
+        textTop(weapon.name, x + 16 * u, top - 12 * u, 24 * u, WHITE, true);
+        textTop(weapon.designation + "  ·  " + weapon.action.label, x + 16 * u, top - 42 * u, 12 * u, DIM, false);
+        textTop(weapon.caliber, x + 16 * u, top - 60 * u, 15 * u, weapon.accent, true);
+        textTop(weapon.optic, x + 16 * u, top - 80 * u, 11 * u, DIM, false);
 
-        ammoPips(s, x + 16 * u, y + 106 * u, u, weapon);
+        textTop("AMMO", x + 16 * u, y + 118 * u, 11 * u, DIM, false);
+        textTop("∞", x + 16 * u, y + 108 * u, 28 * u, WHITE, true);
+        textTop("UNLIMITED", x + 48 * u, y + 100 * u, 12 * u, GREEN, true);
+        textTop(String.format(Locale.ROOT, "MAG %d", weapon.magazineSize), x + 150 * u, y + 100 * u,
+                12 * u, DIM, false);
 
-        textTop("AMMO", x + 16 * u, y + 92 * u, 11 * u, DIM, false);
-        textTop(String.format(Locale.ROOT, "%02d", s.ammo), x + 16 * u, y + 86 * u, 32 * u,
-                s.ammo == 0 ? RED : WHITE, true);
-        textTop("/ " + s.magazine, x + 56 * u, y + 86 * u, 15 * u, DIM, false);
+        textTop(String.format(Locale.ROOT, "DMG %d   PEN %d", weapon.damage, weapon.penetration),
+                x + 16 * u, y + 78 * u, 12 * u, AMBER, false);
+        textTop(String.format(Locale.ROOT, "%.0f gr   %.0f m/s", weapon.bullet.massGrains,
+                        weapon.bullet.muzzleVelocity),
+                x + 180 * u, y + 78 * u, 12 * u, DIM, false);
 
-        textTop("ZERO  " + s.zeroDistance + " M", x + 132 * u, y + 86 * u, 13 * u, WHITE, false);
-        textTop("ELEV  " + String.format(Locale.ROOT, "%+.1f MIL", s.elevationClicks * 0.1), x + 132 * u,
-                y + 67 * u, 13 * u, AMBER, false);
-        textTop("WIND  " + String.format(Locale.ROOT, "%+.1f MIL", s.windageClicks * 0.1), x + 132 * u,
-                y + 48 * u, 13 * u, CYAN, false);
+        textTop("ZERO  " + s.zeroDistance + " M", x + 16 * u, y + 54 * u, 13 * u, WHITE, false);
+        textTop("ELEV  " + String.format(Locale.ROOT, "%+.1f MIL", s.elevationClicks * 0.1), x + 160 * u,
+                y + 54 * u, 13 * u, AMBER, false);
+        textTop("WIND  " + String.format(Locale.ROOT, "%+.1f MIL", s.windageClicks * 0.1), x + 16 * u,
+                y + 34 * u, 13 * u, CYAN, false);
         textTop(String.format(Locale.ROOT, "HOLD %+.1f MIL  ·  %.1fx", s.holdoverMils, s.zoom),
-                x + 132 * u, y + 28 * u, 10.5f * u, s.holdoverMils > 0.01 ? GREEN : DIM, false);
-
-        if (s.reloading) {
-            textTop("RELOADING", x + 16 * u, y + 18 * u, 11 * u, AMBER, true);
-            batch.setColor(0.2f, 0.2f, 0.16f, 0.9f);
-            batch.draw(pixel, x + 90 * u, y + 12 * u, 120 * u, 4 * u);
-            batch.setColor(AMBER);
-            batch.draw(pixel, x + 90 * u, y + 12 * u, 120 * u * s.reloadFraction, 4 * u);
-            batch.setColor(Color.WHITE);
-        }
-    }
-
-    private void ammoPips(HudState s, float x, float y, float u, Weapon weapon) {
-        int max = Math.min(10, weapon.magazineSize);
-        for (int i = 0; i < max; i++) {
-            float px = x + i * 9 * u;
-            batch.setColor(i < s.ammo ? weapon.accent : new Color(0.22f, 0.24f, 0.20f, 1f));
-            batch.draw(pixel, px, y, 5 * u, 12 * u);
-        }
-        batch.setColor(Color.WHITE);
+                x + 160 * u, y + 34 * u, 11 * u, s.holdoverMils > 0.01 ? GREEN : DIM, false);
     }
 
     private void drawEnvironmentPanel(HudState s, float u, float m, float top) {
@@ -252,7 +243,6 @@ public final class Hud {
             return;
         }
         List<Weapon> catalog = WeaponCatalog.all();
-        String[] labels = {"RIMFIRE", "CARBINE", "6.5", ".308", ".300WM", ".338LM", ".50BMG"};
         float cell = 84 * u;
         float gap = 4 * u;
         float x = width - m - (cell + gap) * catalog.size() + gap;
@@ -267,7 +257,7 @@ public final class Hud {
                 batch.setColor(Color.WHITE);
             }
             textCentered((i + 1) + "", cx + 10 * u, y + 21 * u, 10 * u, active ? AMBER : DIM, true);
-            textTop(labels[i], cx + 21 * u, y + 26 * u, 10.5f * u,
+            textTop(catalog.get(i).shortName, cx + 21 * u, y + 26 * u, 10.5f * u,
                     active ? WHITE : DIM, active);
         }
     }
@@ -515,7 +505,7 @@ public final class Hud {
                 {"LEFT MOUSE", "Fire"},
                 {"SHIFT", "Hold breath"},
                 {"ARROWS", "Elevation / windage turrets"},
-                {"R", "Reload"},
+                {"AMMO", "Unlimited — no reload"},
                 {"1-7", "Select weapon"},
                 {"L", "Laser rangefinder"},
                 {"TAB", "Hold for DOPE card"},
@@ -535,8 +525,9 @@ public final class Hud {
             textTop("PRIMARY", col2, y - 360 * u, 12 * u, AMBER, true);
             textTop(weapon.name + "  /  " + weapon.caliber, col2, y - 382 * u, 13 * u, WHITE, true);
             textTop(weapon.specLine(), col2, y - 401 * u, 10.5f * u, DIM, false);
-            textTop(String.format(Locale.ROOT, "MAG %d  ·  %d M MAX  ·  ZERO %d M",
-                    weapon.magazineSize, weapon.maxRangeMeters, s.zeroDistance),
+            textTop(String.format(Locale.ROOT, "MAG %d  ·  %d M  ·  DMG %d  ·  PEN %d  ·  ZERO %d M",
+                    weapon.magazineSize, weapon.maxRangeMeters, weapon.damage, weapon.penetration,
+                    s.zeroDistance),
                     col2, y - 419 * u, 10.5f * u, DIM, false);
         }
 
@@ -555,7 +546,7 @@ public final class Hud {
         textCentered("CLICK TO CAPTURE MOUSE  ·  ESC TO RESUME", width * 0.5f,
                 height * 0.62f - 40 * u, 12 * u, AMBER, false);
         String[] lines = {
-                "LMB fire    RMB scope    SHIFT breathe    R reload",
+                "LMB fire    RMB scope (does not fire)    SHIFT breathe",
                 "ARROWS turrets    1-7 weapon    L rangefinder    TAB DOPE",
                 "V bullet cam    Z zero distance    F5 new wind    H help"
         };
@@ -574,10 +565,11 @@ public final class Hud {
         String[][] controls = {
                 {"MOUSE", "Aim / look"},
                 {"RIGHT MOUSE", "Scope (hold), wheel zoom"},
-                {"LEFT MOUSE", "Fire"},
+                {"LEFT MOUSE", "Fire — never on scope-in"},
+                {"ANDROID", "ADS / FIRE buttons, +/- zoom"},
                 {"SHIFT", "Hold breath"},
                 {"ARROW KEYS", "Elevation / windage (0.1 mil)"},
-                {"R", "Reload"},
+                {"AMMO", "Unlimited, magazine is a reference"},
                 {"1-7", "Select weapon"},
                 {"L", "Laser rangefinder"},
                 {"TAB", "DOPE card (hold)"},
@@ -607,24 +599,15 @@ public final class Hud {
         if (scope > 0.02) {
             float alpha = MathUtils.clamp(scope * 1.4f, 0, 1);
             Color line = new Color(0.035f, 0.035f, 0.03f, 0.90f * alpha);
-            Color halo = new Color(0.85f, 0.87f, 0.82f, 0.12f * alpha);
             float mil = Math.max(2.2f, s.pixelsPerMil);
-            float thick = Math.max(1f, 1.05f * u);
+            float thick = 1f;
             float radius = 0.464f * height * scope;
-
             float armX = Math.min(radius * 0.92f, 13 * mil);
             float armYUp = Math.min(radius * 0.55f, 5.5f * mil);
-            float armYDown = Math.min(radius * 0.72f, 9 * mil);
-            shapes.setColor(halo);
-            rect(cx - armX, cy - thick * 0.5f - 0.5f, armX * 2, thick + 1f);
-            rect(cx - thick * 0.5f - 0.5f, cy - armYDown, thick + 1f, armYUp + armYDown);
+            float armYDown = Math.min(radius * 0.72f, 10 * mil);
             shapes.setColor(line);
-            // center gap
-            float gap = Math.max(2.5f * u, 1.8f);
-            rect(cx - armX, cy - thick * 0.5f, armX - gap, thick);
-            rect(cx + gap, cy - thick * 0.5f, armX - gap, thick);
-            rect(cx - thick * 0.5f, cy + gap, thick, armYUp - gap);
-            rect(cx - thick * 0.5f, cy - armYDown, thick, armYDown - gap);
+            rect(cx - armX, cy - thick * 0.5f, armX * 2, thick);
+            rect(cx - thick * 0.5f, cy - armYDown, thick, armYUp + armYDown);
 
             int maxMil = 8;
             for (int i = 1; i <= maxMil; i++) {
@@ -632,25 +615,21 @@ public final class Hud {
                 if (y < cy - radius * 0.78f) {
                     break;
                 }
-                float tick = (i % 2 == 0) ? 4.0f * u : 2.4f * u;
-                rect(cx - tick, y - thick * 0.5f, tick * 2, thick);
+                float dot = Math.max(1.25f, Math.min(mil * 0.14f, 3.2f));
+                shapes.circle(cx, y, dot, 8);
                 if (s.weapon != null && s.weapon.reticle == com.snipersim.weapons.Reticle.CHRISTMAS_TREE) {
-                    float span = i * mil * 0.42f;
-                    rect(cx - span, y - thick * 0.5f, span * 2, thick * 0.75f);
-                    for (int j = 1; j <= 3; j++) {
-                        float hx = cx + j * mil * 0.5f;
-                        rect(hx, y - 2.2f * u, thick * 0.75f, 4.4f * u);
-                        rect(cx - hx + cx, y - 2.2f * u, thick * 0.75f, 4.4f * u);
-                    }
+                    float span = i * mil * 0.35f;
+                    rect(cx - span, y - thick * 0.5f, span * 2, thick);
                 }
             }
-            for (int i = 1; i <= 6; i++) {
+            float dot = Math.max(1.25f, Math.min(mil * 0.14f, 3.2f));
+            for (int i = 1; i <= 8; i++) {
                 float x = cx + i * mil;
                 if (x > cx + radius * 0.82f) {
                     break;
                 }
-                rect(x, cy - 2.2f * u, thick, 4.4f * u);
-                rect(cx - (x - cx), cy - 2.2f * u, thick, 4.4f * u);
+                shapes.circle(x, cy, dot, 8);
+                shapes.circle(cx - (x - cx), cy, dot, 8);
             }
 
             if (s.holdoverMils > 0.01) {
@@ -663,10 +642,6 @@ public final class Hud {
                 }
             }
 
-            shapes.setColor(new Color(0.95f, 0.28f, 0.16f, 0.95f * alpha));
-            shapes.circle(cx, cy, Math.max(1.4f * u, 1.2f), 12);
-            shapes.setColor(new Color(0.03f, 0.03f, 0.025f, 0.85f * alpha));
-            shapes.circle(cx, cy, Math.max(0.6f * u, 0.5f), 8);
         } else {
             Color c = new Color(0.92f, 0.94f, 0.88f, 0.88f);
             shapes.setColor(new Color(0.02f, 0.03f, 0.02f, 0.5f));
@@ -681,8 +656,6 @@ public final class Hud {
             rect(cx + gap, cy - 0.65f * u, len, 1.3f * u);
             rect(cx - 0.65f * u, cy - gap - len, 1.3f * u, len);
             rect(cx - 0.65f * u, cy + gap, 1.3f * u, len);
-            shapes.setColor(new Color(0.95f, 0.32f, 0.20f, 0.9f));
-            shapes.circle(cx, cy, 1.4f * u, 10);
         }
 
         if (s.hitMarker > 0.01f) {
@@ -705,6 +678,24 @@ public final class Hud {
             shapes.circle(cx, cy, 3 * u, 12);
         }
         shapes.end();
+    }
+
+    private void drawTouchControls(float u) {
+        TouchLayout layout = TouchLayout.of(width, height);
+        touchButton(layout.adsX, layout.adsY, layout.adsW, layout.adsH, "ADS", u);
+        touchButton(layout.fireX, layout.fireY, layout.fireW, layout.fireH, "FIRE", u);
+        touchButton(layout.zoomInX, layout.zoomInY, layout.zoomW, layout.zoomH, "+", u);
+        touchButton(layout.zoomOutX, layout.zoomOutY, layout.zoomW, layout.zoomH, "−", u);
+    }
+
+    private void touchButton(float x, float yTop, float w, float h, String label, float u) {
+        float y = height - (yTop + h);
+        batch.setColor(0.02f, 0.03f, 0.025f, 0.72f);
+        batch.draw(pixel, x, y, w, h);
+        batch.setColor(AMBER.r, AMBER.g, AMBER.b, 0.85f);
+        batch.draw(pixel, x, y + h - 2f * u, w, 2f * u);
+        batch.setColor(Color.WHITE);
+        textCentered(label, x + w * 0.5f, y + h * 0.72f, 13f * u, WHITE, true);
     }
 
     private void rect(float x, float y, float w, float h) {

@@ -66,20 +66,20 @@ class ZeroSolverTest {
     }
 
     @Test
-    void rimfireDropsMoreThanLapua() {
-        Weapon rimfire = WeaponCatalog.all().get(0);
-        Weapon lapua = WeaponCatalog.all().get(5);
-        BallisticsEngine rimEngine = new BallisticsEngine(Atmosphere.highDesert(), WindModel.calm(), FLAT);
-        BallisticsEngine lapuaEngine = new BallisticsEngine(Atmosphere.highDesert(), WindModel.calm(), FLAT);
-        Trajectory rim = rimEngine.simulate(rimfire.bullet, rimfire.bullet.muzzleVelocity,
+    void serviceRifleDropsMoreThanCheyTac() {
+        Weapon service = WeaponCatalog.all().get(0);
+        Weapon cheytac = WeaponCatalog.all().get(3);
+        BallisticsEngine serviceEngine = new BallisticsEngine(Atmosphere.highDesert(), WindModel.calm(), FLAT);
+        BallisticsEngine cheyEngine = new BallisticsEngine(Atmosphere.highDesert(), WindModel.calm(), FLAT);
+        Trajectory servicePath = serviceEngine.simulate(service.bullet, service.bullet.muzzleVelocity,
                 new Vector3(0, 0, 0), new Vector3(0, 0, -1));
-        Trajectory lap = lapuaEngine.simulate(lapua.bullet, lapua.bullet.muzzleVelocity,
+        Trajectory cheyPath = cheyEngine.simulate(cheytac.bullet, cheytac.bullet.muzzleVelocity,
                 new Vector3(0, 0, 0), new Vector3(0, 0, -1));
         Vector3 p1 = new Vector3();
         Vector3 p2 = new Vector3();
         Vector3 v = new Vector3();
-        assertTrue(rim.sampleAtRange(300, p1, v, null));
-        assertTrue(lap.sampleAtRange(300, p2, v, null));
-        assertTrue(p1.y < p2.y - 1.0);
+        assertTrue(servicePath.sampleAtRange(800, p1, v, null));
+        assertTrue(cheyPath.sampleAtRange(800, p2, v, null));
+        assertTrue(p1.y < p2.y - 0.5);
     }
 }

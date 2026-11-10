@@ -20,6 +20,7 @@ import com.snipersim.ballistics.Trajectory;
 import com.snipersim.ballistics.WindModel;
 import com.snipersim.ballistics.ZeroSolver;
 import com.snipersim.input.LookInput;
+import com.snipersim.input.TouchLayout;
 import com.snipersim.render.Hud;
 import com.snipersim.render.HudState;
 import com.snipersim.render.SceneRenderer;
@@ -65,7 +66,6 @@ public final class GameScreen extends ScreenAdapter {
 
     private Weapon weapon;
     private int weaponIndex;
-    private int ammo;
     private int zeroDistance = 100;
     private int elevationClicks;
     private int windageClicks;
@@ -74,8 +74,6 @@ public final class GameScreen extends ScreenAdapter {
     private double zoom;
     private float scopeAmount;
     private boolean scopedInput;
-    private boolean reloading;
-    private float reloadTimer;
     private boolean boltReady = true;
     private float boltTimer;
     private float boltSoundTimer;
@@ -108,8 +106,9 @@ public final class GameScreen extends ScreenAdapter {
     private boolean paused;
     private boolean helpVisible;
     private boolean cursorCaptured;
-    private boolean prevLeft;
     private final Vector2 lookDelta = new Vector2();
+    private final boolean[] controlPointer = new boolean[12];
+    private int adsPointer = -1;
     private float lastPointerX;
     private float lastPointerY;
     private float lastMouseX;
@@ -149,7 +148,13 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-            if (android && pointer == 0) {
+            if (!android) {
+                return false;
+            }
+            if (!briefing && !paused && pressTouchControl(screenX, screenY, pointer, button)) {
+                return true;
+            }
+            if (pointer == 0) {
                 lastPointerX = screenX;
                 lastPointerY = screenY;
                 lastMouseX = screenX;
@@ -162,7 +167,7 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean touchDragged(int screenX, int screenY, int pointer) {
-            if (android && pointer == 0) {
+            if (android && pointer == 0 && !isControlPointer(pointer)) {
                 if (pointerDown) {
                     LookInput.addDelta(screenX - lastPointerX, screenY - lastPointerY);
                 }
@@ -178,7 +183,18 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-            if (android && pointer == 0) {
+            if (!android) {
+                return false;
+            }
+            if (button == Input.Buttons.RIGHT) {
+                LookInput.setMouseScope(false);
+            }
+            if (pointer == adsPointer) {
+                adsPointer = -1;
+                LookInput.setTouchScope(false);
+            }
+            clearControlPointer(pointer);
+            if (pointer == 0) {
                 pointerDown = false;
             }
             return false;
@@ -221,7 +237,6 @@ public final class GameScreen extends ScreenAdapter {
 
         weapon = WeaponCatalog.defaultWeapon();
         weaponIndex = WeaponCatalog.indexOf(weapon);
-        ammo = weapon.magazineSize;
         zoom = weapon.scopeDefaultZoom;
 
         renderer = new SceneRenderer(weapon.accent);
@@ -267,6 +282,12 @@ public final class GameScreen extends ScreenAdapter {
         height = Math.max(1, Gdx.graphics.getHeight());
 
         handleGlobalInput();
+        if (!android) {
+            // Scope is sampled first. A right-button edge in this frame clears
+            // any fire edge, including a backend that also reports primary.
+            LookInput.setMouseScope(Gdx.input.isButtonPressed(Input.Buttons.RIGHT));
+            LookInput.setMouseFire(Gdx.input.isButtonPressed(Input.Buttons.LEFT));
+        }
 
         boolean interactive = !briefing && !paused && !bulletCamActive;
         if (interactive) {
@@ -276,6 +297,7 @@ public final class GameScreen extends ScreenAdapter {
             Gdx.input.getDeltaY();
             LookInput.consume(lookDelta);
             LookInput.consumeScroll();
+            LookInput.consumeFireEdge();
         }
 
         updateBreathing(delta);
@@ -288,9 +310,9 @@ public final class GameScreen extends ScreenAdapter {
         if (interactive) {
             handleGameplayInput(delta);
         } else {
-            prevLeft = isLeftPressed();
-            LookInput.clearJustPressed();
+            LookInput.consumeFireEdge();
         }
+        LookInput.endFrame();
 
         if (!paused) {
             updateWeapon(delta);
@@ -320,16 +342,12 @@ public final class GameScreen extends ScreenAdapter {
     private void handleGlobalInput() {
         boolean start = Gdx.input.isKeyJustPressed(Input.Keys.ENTER)
                 || (android && Gdx.input.justTouched());
-        if (android && briefing && LookInput.consumeJustPressed(Input.Buttons.LEFT)) {
-            start = true;
-        }
         if (start && briefing) {
             briefing = false;
+            LookInput.consumeFireEdge();
+            LookInput.cancelUnconfirmedFire();
             if (!smokeTest) {
                 captureMouse();
-            }
-            if (android) {
-                prevLeft = true;
             }
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -357,15 +375,13 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
         if (paused && !briefing) {
-            boolean left = isLeftPressed();
-            boolean clicked = left && !prevLeft;
-            if (android) {
-                clicked |= LookInput.consumeJustPressed(Input.Buttons.LEFT);
-            }
+            boolean clicked = Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)
+                    || (android && Gdx.input.justTouched());
             if (clicked) {
                 paused = false;
                 captureMouse();
-                prevLeft = true;
+                LookInput.consumeFireEdge();
+                LookInput.cancelUnconfirmedFire();
             }
         }
     }
@@ -387,14 +403,50 @@ public final class GameScreen extends ScreenAdapter {
         yaw = wrapAngle(yaw);
     }
 
-    private boolean isLeftPressed() {
-        return Gdx.input.isButtonPressed(Input.Buttons.LEFT)
-                || (android && LookInput.isButtonPressed(Input.Buttons.LEFT));
+    private boolean pressTouchControl(int screenX, int screenY, int pointer, int button) {
+        if (button == Input.Buttons.RIGHT) {
+            LookInput.setMouseScope(true);
+            return false;
+        }
+        TouchLayout layout = TouchLayout.of(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        if (layout.hitAds(screenX, screenY)) {
+            adsPointer = pointer;
+            LookInput.setTouchScope(true);
+            markControlPointer(pointer);
+            return true;
+        }
+        if (layout.hitFire(screenX, screenY)) {
+            LookInput.pulseFire();
+            markControlPointer(pointer);
+            return true;
+        }
+        if (layout.hitZoomIn(screenX, screenY)) {
+            pendingZoom += 1;
+            markControlPointer(pointer);
+            return true;
+        }
+        if (layout.hitZoomOut(screenX, screenY)) {
+            pendingZoom -= 1;
+            markControlPointer(pointer);
+            return true;
+        }
+        return false;
     }
 
-    private boolean isRightPressed() {
-        return Gdx.input.isButtonPressed(Input.Buttons.RIGHT)
-                || (android && LookInput.isButtonPressed(Input.Buttons.RIGHT));
+    private void markControlPointer(int pointer) {
+        if (pointer >= 0 && pointer < controlPointer.length) {
+            controlPointer[pointer] = true;
+        }
+    }
+
+    private void clearControlPointer(int pointer) {
+        if (pointer >= 0 && pointer < controlPointer.length) {
+            controlPointer[pointer] = false;
+        }
+    }
+
+    private boolean isControlPointer(int pointer) {
+        return pointer >= 0 && pointer < controlPointer.length && controlPointer[pointer];
     }
 
     private void handleGameplayInput(float delta) {
@@ -411,7 +463,8 @@ public final class GameScreen extends ScreenAdapter {
             toastTimer = 2.0f;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.R)) {
-            startReload();
+            showToast(false, "UNLIMITED", "NO RELOAD  ·  MAGAZINE IS A REFERENCE", "");
+            toastTimer = 1.4f;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.L)) {
             laserRange();
@@ -479,13 +532,7 @@ public final class GameScreen extends ScreenAdapter {
             }
         }
 
-        boolean left = isLeftPressed();
-        boolean justClicked = left && !prevLeft;
-        if (android) {
-            justClicked |= LookInput.consumeJustPressed(Input.Buttons.LEFT);
-        }
-        prevLeft = left;
-        if (justClicked) {
+        if (LookInput.consumeFireEdge()) {
             fire();
         }
     }
@@ -513,7 +560,7 @@ public final class GameScreen extends ScreenAdapter {
     }
 
     private void updateScope(float delta, boolean interactive) {
-        scopedInput = interactive && isRightPressed();
+        scopedInput = interactive && LookInput.isScopeDown();
         if (smokeTest && frame > 5) {
             scopedInput = true;
         }
@@ -578,13 +625,7 @@ public final class GameScreen extends ScreenAdapter {
     // -------------------------------------------------------------- shooting
 
     private void fire() {
-        if (briefing || paused || reloading || !boltReady || bulletCamActive) {
-            return;
-        }
-        if (ammo <= 0) {
-            audio.emptyClick();
-            showToast(false, "MAGAZINE EMPTY", "PRESS R TO RELOAD", "");
-            toastTimer = 1.6f;
+        if (briefing || paused || !boltReady || bulletCamActive) {
             return;
         }
 
@@ -635,11 +676,10 @@ public final class GameScreen extends ScreenAdapter {
         }
         float distance = (float) Math.hypot(impactPoint.x - shooterEye.x, impactPoint.z - shooterEye.z);
 
-        ammo--;
-        int ammoAfter = ammo;
         shotCount++;
         Shot shot = new Shot(weapon, trajectory, fireMissionTime, muzzleVelocity,
-                hitTarget, ring, hitTime, impactPoint, impactVelocity, points, distance, ammoAfter);
+                hitTarget, ring, hitTime, impactPoint, impactVelocity, points, distance,
+                weapon.magazineSize);
         shot.muzzle.set(renderer.muzzleWorld());
         shots.add(shot);
         if (shots.size() > 14) {
@@ -652,7 +692,6 @@ public final class GameScreen extends ScreenAdapter {
         boltReady = false;
         boltTimer = (float) weapon.cycleTime;
         boltSoundTimer = boltTimer;
-        reloading = false;
 
         recoilPitchVelocity += weapon.recoilPitchRad * 30.0f;
         recoilYawVelocity += weapon.recoilYawRad * (gaussian() < 0 ? -30.0f : 30.0f)
@@ -837,33 +876,8 @@ public final class GameScreen extends ScreenAdapter {
         return "IMPACT " + h + "  ·  " + v;
     }
 
-    private void startReload() {
-        if (reloading || briefing || paused) {
-            return;
-        }
-        if (ammo >= weapon.magazineSize) {
-            return;
-        }
-        reloading = true;
-        reloadTimer = (float) weapon.reloadTime;
-        boltReady = false;
-        audio.reload();
-    }
-
     private void updateWeapon(float delta) {
-        if (reloading) {
-            reloadTimer -= delta;
-            if (reloadTimer <= 0) {
-                reloading = false;
-                ammo = weapon.magazineSize;
-                boltReady = true;
-                boltTimer = 0;
-                audio.boltCycle();
-                showToast(false, "RELOADED", String.format(Locale.ROOT, "%s · %d ROUNDS",
-                        weapon.caliber, ammo), "");
-                toastTimer = 1.4f;
-            }
-        } else if (!boltReady) {
+        if (!boltReady) {
             boltTimer -= delta;
             if (boltTimer <= 0) {
                 boltReady = true;
@@ -998,8 +1012,6 @@ public final class GameScreen extends ScreenAdapter {
         }
         weapon = next;
         weaponIndex = WeaponCatalog.indexOf(weapon);
-        ammo = weapon.magazineSize;
-        reloading = false;
         boltReady = true;
         boltTimer = 0;
         zoom = weapon.scopeDefaultZoom;
@@ -1130,11 +1142,11 @@ public final class GameScreen extends ScreenAdapter {
         HudState s = hudState;
         s.weapon = weapon;
         s.weaponIndex = weaponIndex;
-        s.ammo = ammo;
+        s.ammo = weapon.magazineSize;
         s.magazine = weapon.magazineSize;
-        s.reloading = reloading;
-        s.reloadFraction = reloading
-                ? 1f - (float) (reloadTimer / Math.max(0.01, weapon.reloadTime)) : 0;
+        s.reloading = false;
+        s.reloadFraction = 0;
+        s.touchControls = android && !briefing && !paused && !bulletCamActive;
         s.zeroDistance = zeroDistance;
         s.elevationClicks = elevationClicks;
         s.windageClicks = windageClicks;

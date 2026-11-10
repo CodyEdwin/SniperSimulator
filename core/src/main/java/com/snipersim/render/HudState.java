@@ -12,6 +12,7 @@ public final class HudState {
     public int magazine;
     public boolean reloading;
     public float reloadFraction;
+    public boolean touchControls;
 
     public int zeroDistance;
     public int elevationClicks;

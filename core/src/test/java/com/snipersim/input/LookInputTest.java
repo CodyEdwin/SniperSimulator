@@ -1,6 +1,5 @@
 package com.snipersim.input;
 
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Vector2;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +14,6 @@ class LookInputTest {
     @AfterEach
     void reset() {
         LookInput.clear();
-        LookInput.clearJustPressed();
-        LookInput.setPointerCaptured(false);
     }
 
     @Test
@@ -34,26 +31,73 @@ class LookInputTest {
     }
 
     @Test
-    void tracksIndependentButtonStatesAndEdges() {
-        LookInput.setButtons((1 << Input.Buttons.LEFT) | (1 << Input.Buttons.RIGHT));
-        assertTrue(LookInput.isButtonPressed(Input.Buttons.LEFT));
-        assertTrue(LookInput.isButtonPressed(Input.Buttons.RIGHT));
-        assertTrue(LookInput.consumeJustPressed(Input.Buttons.LEFT));
-        assertTrue(LookInput.consumeJustPressed(Input.Buttons.RIGHT));
-        assertFalse(LookInput.consumeJustPressed(Input.Buttons.LEFT));
-
-        LookInput.setButtons(1 << Input.Buttons.LEFT);
-        assertTrue(LookInput.isButtonPressed(Input.Buttons.LEFT));
-        assertFalse(LookInput.isButtonPressed(Input.Buttons.RIGHT));
-        assertFalse(LookInput.consumeJustPressed(Input.Buttons.LEFT));
-        assertFalse(LookInput.consumeJustPressed(Input.Buttons.RIGHT));
-    }
-
-    @Test
     void accumulatesScroll() {
         LookInput.addScroll(1.5f);
         LookInput.addScroll(-0.5f);
         assertEquals(1f, LookInput.consumeScroll(), 0.0001f);
         assertEquals(0f, LookInput.consumeScroll(), 0.0001f);
+    }
+
+    @Test
+    void scopePressSameFrameDoesNotFire() {
+        LookInput.setMouseScope(true);
+        LookInput.setMouseFire(true);
+        assertTrue(LookInput.isScopeDown());
+        assertFalse(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void fireThenScopeSameFrameDoesNotFire() {
+        LookInput.setMouseFire(true);
+        LookInput.setMouseScope(true);
+        assertFalse(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void fireWhileAlreadyScopedStillFires() {
+        LookInput.setMouseScope(true);
+        LookInput.endFrame();
+        LookInput.setMouseFire(true);
+        assertTrue(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void touchScopeDoesNotFire() {
+        LookInput.setTouchScope(true);
+        LookInput.pulseFire();
+        assertTrue(LookInput.isScopeDown());
+        assertFalse(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void touchFireAfterScopeIsHeldDoesFire() {
+        LookInput.setTouchScope(true);
+        LookInput.endFrame();
+        LookInput.pulseFire();
+        assertTrue(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void unconfirmedFirePromotesNextFrame() {
+        LookInput.armUnconfirmedFire();
+        assertFalse(LookInput.consumeFireEdge());
+        LookInput.endFrame();
+        assertTrue(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void scopeCancelsUnconfirmedFire() {
+        LookInput.armUnconfirmedFire();
+        LookInput.setMouseScope(true);
+        LookInput.endFrame();
+        assertFalse(LookInput.consumeFireEdge());
+    }
+
+    @Test
+    void scopeAfterPromotionCancelsBeforeConsume() {
+        LookInput.armUnconfirmedFire();
+        LookInput.endFrame();
+        LookInput.setMouseScope(true);
+        assertFalse(LookInput.consumeFireEdge());
     }
 }

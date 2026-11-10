@@ -48,19 +48,23 @@ public final class World {
     }
 
     private void buildTargets() {
+        // Centered on the firing line (x = 0) so every plate sits in the lane
+        // the shooter is looking down. Distances stay staggered. Movers swing
+        // a few metres either side of that centerline and still read as the
+        // middle of the range.
         float[][] layout = {
                 // range, x offset, kind (0=gong,1=sil,2=mover), width, height, move amp, period
-                {200, -52, 1, 0.55f, 1.72f, 0, 0},
-                {320, 74, 0, 0.58f, 0.58f, 0, 0},
-                {450, -95, 0, 0.42f, 0.42f, 0, 0},
-                {600, 42, 2, 0.55f, 1.72f, 7.5f, 17},
-                {760, -118, 0, 0.48f, 0.48f, 0, 0},
-                {930, 112, 1, 0.58f, 1.78f, 0, 0},
-                {1100, -32, 0, 0.46f, 0.46f, 0, 0},
-                {1280, 152, 2, 0.58f, 1.78f, 11f, 22},
-                {1540, -142, 0, 0.58f, 0.58f, 0, 0},
-                {1780, 68, 1, 0.62f, 1.84f, 0, 0},
-                {2000, -74, 0, 0.74f, 0.74f, 0, 0}
+                {200, 0, 1, 0.55f, 1.72f, 0, 0},
+                {320, 0, 0, 0.58f, 0.58f, 0, 0},
+                {450, 0, 0, 0.42f, 0.42f, 0, 0},
+                {600, 0, 2, 0.55f, 1.72f, 6f, 17},
+                {760, 0, 0, 0.48f, 0.48f, 0, 0},
+                {930, 0, 1, 0.58f, 1.78f, 0, 0},
+                {1100, 0, 0, 0.46f, 0.46f, 0, 0},
+                {1280, 0, 2, 0.58f, 1.78f, 8f, 22},
+                {1540, 0, 0, 0.58f, 0.58f, 0, 0},
+                {1780, 0, 1, 0.62f, 1.84f, 0, 0},
+                {2000, 0, 0, 0.74f, 0.74f, 0, 0}
         };
 
         int id = 0;

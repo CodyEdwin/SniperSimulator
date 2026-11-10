@@ -1,6 +1,6 @@
 # DAGGER RIDGE
 
-A first-person 3D long-range sniper simulation for desktop and Android, written in Java 11 with libGDX 1.14.2 and built with Gradle. Every shot is integrated through a full external-ballistics model: G7 drag, Mach-dependent drag rise, station atmosphere and humidity, wind shear and gusts, Coriolis, gyroscopic spin drift, Magnus, aerodynamic jump and terrain collision. Seven chamberings, from .22 LR to .50 BMG, each with its own trajectory, recoil, reload and optic.
+A first-person 3D long-range sniper simulation for desktop and Android, written in Java 11 with libGDX 1.14.2 and built with Gradle. Every shot is integrated through a full external-ballistics model: G7 drag, Mach-dependent drag rise, station atmosphere and humidity, wind shear and gusts, Coriolis, gyroscopic spin drift, Magnus, aerodynamic jump and terrain collision. Seven service sniper rifles, from the M110 to the Barrett M107, each with its own trajectory, recoil and optic. Ammunition is unlimited.
 
 There is no imported art or audio. Terrain, targets, rifle, reticles, sky and sound effects are generated procedurally at runtime, so the repository stays small and every visual can be tuned from code.
 
@@ -24,7 +24,7 @@ The helper script sets up the toolchain and picks the right Gradle task:
 ./run.sh android      # debug APK
 ./run.sh install      # install APK on a connected adb device
 ./run.sh package      # self-contained desktop app image zip
-./run.sh fatjar       # single executable DaggerRidge-1.0.2.jar
+./run.sh fatjar       # single executable DaggerRidge-1.0.3.jar
 ./run.sh smoke        # headless render/ballistics smoke test
 ```
 
@@ -66,7 +66,7 @@ The launcher accepts `--width=`, `--height=` and `--smoke-test`. The smoke test 
 | `Page Up` / `Page Down` | Holdover +/ -5 mil |
 | `\` | Clear holdover |
 | `Z` | Cycle zero distance (100-500 m, 100 m steps) |
-| `R` | Reload |
+| `R` | Note: ammunition is unlimited |
 | `1`-`7` | Select weapon |
 | `Shift` (hold) | Hold breath (steadies the reticle, then runs out) |
 | `Tab` (hold) | DOPE table for the current weapon and conditions |
@@ -120,29 +120,29 @@ The UI uses **JetBrains Mono Nerd Font** (`assets/fonts/JetBrainsMonoNerdFont-Re
 
 ## Weapons
 
-| # | Name | Chambering | Bullet | BC (G7) | MV |
-| --- | --- | --- | --- | --- | --- |
-| 1 | Rimfire Trainer | .22 LR | 40 gr LRN | 0.065 | 326 m/s |
-| 2 | Carbine | 5.56 NATO | 62 gr M855 | 0.151 | 948 m/s |
-| 3 | Creedmoor | 6.5 Creedmoor | 140 gr ELD-M | 0.322 | 823 m/s |
-| 4 | The Workhorse | .308 Win | 175 gr SMK | 0.243 | 792 m/s |
-| 5 | Magnum | .300 Win Mag | 190 gr Berger LR | 0.285 | 900 m/s |
-| 6 | Lapua | .338 Lapua Mag | 300 gr Scenar | 0.381 | 869 m/s |
-| 7 | Anti-Materiel | .50 BMG | 750 gr A-MAX | 0.530 | 860 m/s |
+| # | Rifle | Cartridge | Bullet | MV | Optic | Action | Mag |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | M110 SASS | 7.62×51 | 175 gr M118LR | 784 m/s | Leupold 3.5–10× | Semi | 20 |
+| 2 | M24 SWS | 7.62×51 | 175 gr M118LR | 790 m/s | Leupold 10× fixed | Bolt | 5 |
+| 3 | L96A1 | 7.62×51 | 168 gr SMK | 850 m/s | S&B 3–12× (6×) | Bolt | 10 |
+| 4 | L115A3 | .338 Lapua | 250 gr B408 | 936 m/s | S&B 5–25× | Bolt | 5 |
+| 5 | CheyTac M200 | .408 CheyTac | 419 gr | 838 m/s | Nightforce 7–35× | Bolt | 7 |
+| 6 | McMillan TAC-50 | .50 BMG | 750 gr A-MAX | 823 m/s | S&B 5–25× | Bolt | 5 |
+| 7 | Barrett M107 | .50 BMG | 661 gr M33 | 853 m/s | Leupold 4.5–14× | Semi | 10 |
 
-Each weapon has its own magazine, cycle time, reload time, recoil impulse, dispersion, scope zoom range, reticle, effective range and accent color.
+Ammunition is unlimited. Magazine size, bolt or semi-auto cycle, recoil, damage and penetration are still per rifle. Specs and sources live in `WeaponCatalog`.
 
 ## Desktop packaging
 
 `./run.sh package` builds a self-contained native app image with `jpackage` for the current OS, including a private Java runtime, and zips it:
 
 ```
-lwjgl3/build/distributions/DaggerRidge-1.0.2-linux-x64.zip
-lwjgl3/build/distributions/DaggerRidge-1.0.2-windows-x64.zip
-lwjgl3/build/distributions/DaggerRidge-1.0.2-macos-arm64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.3-linux-x64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.3-windows-x64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.3-macos-arm64.zip
 ```
 
-Extract the archive and run `DaggerRidge/bin/DaggerRidge` (`.exe` on Windows, `.app` launcher on macOS). No installed Java is required. `./run.sh fatjar` builds `lwjgl3/build/libs/DaggerRidge-1.0.2.jar`, a cross-platform fat jar that needs Java 11+ and runs with `java -jar DaggerRidge-1.0.2.jar`. The optional `./gradlew :lwjgl3:desktopInstaller` task builds a `.deb`, `.msi` or `.dmg` using the host platform's jpackage tooling. The GitHub Actions workflow builds the app-image zip on Linux, Windows and macOS runners and the debug APK on Linux.
+Extract the archive and run `DaggerRidge/bin/DaggerRidge` (`.exe` on Windows, `.app` launcher on macOS). No installed Java is required. `./run.sh fatjar` builds `lwjgl3/build/libs/DaggerRidge-1.0.3.jar`, a cross-platform fat jar that needs Java 11+ and runs with `java -jar DaggerRidge-1.0.3.jar`. The optional `./gradlew :lwjgl3:desktopInstaller` task builds a `.deb`, `.msi` or `.dmg` using the host platform's jpackage tooling. The GitHub Actions workflow builds the app-image zip on Linux, Windows and macOS runners and the debug APK on Linux.
 
 ## Project layout
 
