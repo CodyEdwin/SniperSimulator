@@ -147,6 +147,10 @@ public final class SceneRenderer {
         effects.spawnMuzzleSmoke(rifle.muzzleWorld());
     }
 
+    public void syncRifle(com.badlogic.gdx.graphics.Camera camera) {
+        rifle.update(camera);
+    }
+
     public Vector3 muzzleWorld() {
         return rifle.muzzleWorld();
     }

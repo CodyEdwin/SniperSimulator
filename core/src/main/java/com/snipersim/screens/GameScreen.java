@@ -680,6 +680,7 @@ public final class GameScreen extends ScreenAdapter {
         Shot shot = new Shot(weapon, trajectory, fireMissionTime, muzzleVelocity,
                 hitTarget, ring, hitTime, impactPoint, impactVelocity, points, distance,
                 weapon.magazineSize);
+        renderer.syncRifle(camera);
         shot.muzzle.set(renderer.muzzleWorld());
         shots.add(shot);
         if (shots.size() > 14) {

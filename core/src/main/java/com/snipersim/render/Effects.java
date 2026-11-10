@@ -194,9 +194,8 @@ public final class Effects {
         float prevX = 0;
         float prevY = 0;
         boolean hasPrev = false;
-        // Start at the rifle muzzle. The ballistic origin sits on the scope
-        // line and the sight-height offset is exaggerated at point-blank
-        // range, which made tracers appear to start well below the shot.
+        // The solver starts on the scope line. Shift the visible path onto the
+        // barrel for the first few metres so the round leaves the muzzle.
         if (shot.muzzle.len2() > 0 && project(camera, shot.muzzle, width, height)) {
             prevX = projected.x;
             prevY = projected.y;
@@ -206,12 +205,7 @@ public final class Effects {
             if (shot.trajectory.time(i) > maxTime) {
                 break;
             }
-            float dx = shot.trajectory.x(i) - shot.trajectory.originX;
-            float dz = shot.trajectory.z(i) - shot.trajectory.originZ;
-            if (Math.hypot(dx, dz) < 18f) {
-                continue;
-            }
-            toPoint.set(shot.trajectory.x(i), shot.trajectory.y(i), shot.trajectory.z(i));
+            visualPosition(shot, shot.trajectory.time(i), toPoint);
             if (!project(camera, toPoint, width, height)) {
                 hasPrev = false;
                 continue;
@@ -224,8 +218,7 @@ public final class Effects {
             hasPrev = true;
         }
 
-        // Bright tracer head.
-        shot.trajectory.getPosition(maxTime, bulletPos);
+        visualPosition(shot, maxTime, bulletPos);
         if (project(camera, bulletPos, width, height)) {
             float size = Math.max(2f, pixelSize(camera, bulletPos, 0.16f, height));
             batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
@@ -233,6 +226,22 @@ public final class Effects {
             batch.draw(dot, projected.x - size, projected.y - size, size * 2, size * 2);
             batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         }
+    }
+
+    /** Ballistic point, pulled onto the muzzle until the round is clear of the rifle. */
+    private void visualPosition(Shot shot, float time, Vector3 out) {
+        shot.trajectory.getPosition(time, out);
+        if (shot.muzzle.len2() < 1e-4f) {
+            return;
+        }
+        float dx = out.x - shot.trajectory.originX;
+        float dy = out.y - shot.trajectory.originY;
+        float dz = out.z - shot.trajectory.originZ;
+        float traveled = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        float keep = 1f - MathUtils.clamp(traveled / 8f, 0f, 1f);
+        out.x += (shot.muzzle.x - shot.trajectory.originX) * keep;
+        out.y += (shot.muzzle.y - shot.trajectory.originY) * keep;
+        out.z += (shot.muzzle.z - shot.trajectory.originZ) * keep;
     }
 
     private void drawSegment(SpriteBatch batch, float x1, float y1, float x2, float y2, float thickness) {
