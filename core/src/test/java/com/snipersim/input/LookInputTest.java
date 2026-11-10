@@ -62,6 +62,19 @@ class LookInputTest {
     }
 
     @Test
+    void phantomPrimaryFromScopeInDoesNotBlockLaterShot() {
+        LookInput.setMouseScope(true);
+        LookInput.setMouseFire(true);
+        LookInput.endFrame();
+        LookInput.setMouseFire(true);
+        assertFalse(LookInput.consumeFireEdge());
+        LookInput.setMouseFire(false);
+        LookInput.setMouseFire(true);
+        assertTrue(LookInput.isScopeDown());
+        assertTrue(LookInput.consumeFireEdge());
+    }
+
+    @Test
     void touchScopeDoesNotFire() {
         LookInput.setTouchScope(true);
         LookInput.pulseFire();

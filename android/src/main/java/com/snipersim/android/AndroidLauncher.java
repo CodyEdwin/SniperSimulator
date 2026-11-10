@@ -94,39 +94,40 @@ public final class AndroidLauncher extends AndroidApplication {
         int action = event.getActionMasked();
         int changed = event.getActionButton();
         int state = event.getButtonState();
-        if (action == MotionEvent.ACTION_BUTTON_PRESS) {
-            state |= changed;
-        } else if (action == MotionEvent.ACTION_BUTTON_RELEASE) {
-            state &= ~changed;
-        }
 
-        boolean secondary = (state & MotionEvent.BUTTON_SECONDARY) != 0;
-        boolean primary = (state & MotionEvent.BUTTON_PRIMARY) != 0;
-        if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
-            primary = false;
-            if ((event.getButtonState() & MotionEvent.BUTTON_SECONDARY) == 0) {
-                secondary = false;
+        // Edges only. A held right button used to clear primary for the whole
+        // aim, so the rifle could not fire while scoped.
+        if (action == MotionEvent.ACTION_BUTTON_PRESS) {
+            if (changed == MotionEvent.BUTTON_SECONDARY) {
+                mouseScope = true;
+                LookInput.cancelUnconfirmedFire();
+            } else if (changed == MotionEvent.BUTTON_PRIMARY) {
+                mouseFire = true;
+                LookInput.cancelUnconfirmedFire();
+            }
+        } else if (action == MotionEvent.ACTION_BUTTON_RELEASE) {
+            if (changed == MotionEvent.BUTTON_SECONDARY) {
+                mouseScope = false;
+            } else if (changed == MotionEvent.BUTTON_PRIMARY) {
+                mouseFire = false;
+            }
+        } else if (action == MotionEvent.ACTION_DOWN) {
+            if ((state & MotionEvent.BUTTON_SECONDARY) != 0) {
+                mouseScope = true;
+                LookInput.cancelUnconfirmedFire();
+            } else if ((state & MotionEvent.BUTTON_PRIMARY) != 0) {
+                mouseFire = true;
+                LookInput.cancelUnconfirmedFire();
+            } else {
+                LookInput.armUnconfirmedFire();
+            }
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            mouseFire = false;
+            if ((state & MotionEvent.BUTTON_SECONDARY) == 0) {
+                mouseScope = false;
             }
         }
 
-        // A right-click often arrives as ACTION_DOWN with an empty button
-        // mask, and libGDX would treat that mask as the left button. Hold the
-        // click for one frame. The secondary press cancels it; a real primary
-        // press below commits immediately.
-        if (action == MotionEvent.ACTION_DOWN && state == 0 && !secondary) {
-            LookInput.armUnconfirmedFire();
-        }
-        if (secondary) {
-            primary = false;
-            LookInput.cancelUnconfirmedFire();
-        } else if (primary && (action == MotionEvent.ACTION_BUTTON_PRESS
-                || action == MotionEvent.ACTION_DOWN)) {
-            LookInput.cancelUnconfirmedFire();
-        }
-
-        mouseScope = secondary;
-        mouseFire = primary && !secondary;
-        // Scope first so a same-frame primary edge cannot discharge the rifle.
         LookInput.setMouseScope(mouseScope);
         LookInput.setMouseFire(mouseFire);
 

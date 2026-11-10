@@ -23,6 +23,8 @@ public final class LookInput {
     private static boolean fireEdge;
     private static boolean fireFromUnconfirmed;
     private static boolean unconfirmedFire;
+    /** Primary that arrived with the scope press. Ignored until it releases. */
+    private static boolean ignoreFireHold;
     private static boolean pointerCaptured;
 
     private LookInput() {
@@ -73,11 +75,24 @@ public final class LookInput {
      * so aim-down-sights cannot discharge the rifle.
      */
     public static synchronized void setMouseFire(boolean down) {
-        if (down && !mouseFire && !scopeThisFrame) {
-            fireEdge = true;
-            fireFromUnconfirmed = false;
+        if (!down) {
+            ignoreFireHold = false;
+            mouseFire = false;
+            return;
         }
-        mouseFire = down;
+        if (ignoreFireHold) {
+            return;
+        }
+        if (mouseFire) {
+            return;
+        }
+        if (scopeThisFrame) {
+            ignoreFireHold = true;
+            return;
+        }
+        fireEdge = true;
+        fireFromUnconfirmed = false;
+        mouseFire = true;
     }
 
     /** Explicit fire control (on-screen button). Same-frame scope still wins. */
@@ -152,6 +167,7 @@ public final class LookInput {
         fireEdge = false;
         fireFromUnconfirmed = false;
         unconfirmedFire = false;
+        ignoreFireHold = false;
         pointerCaptured = false;
     }
 

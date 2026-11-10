@@ -430,6 +430,9 @@ public final class GameScreen extends ScreenAdapter {
             markControlPointer(pointer);
             return true;
         }
+        if (LookInput.isScopeDown()) {
+            LookInput.pulseFire();
+        }
         return false;
     }
 
