@@ -113,9 +113,11 @@ public final class Hud {
         batch.setColor(Color.WHITE);
         if (s.briefing) {
             drawBriefing(s, u, margin);
+            drawArmoryButton(u, true);
         } else {
             if (s.paused) {
                 drawPause(s, u);
+                drawArmoryButton(u, true);
             } else {
                 drawWeaponPanel(s, u, margin, top);
                 drawEnvironmentPanel(s, u, margin, top);
@@ -148,6 +150,7 @@ public final class Hud {
                 if (s.touchControls) {
                     drawTouchControls(u);
                 }
+                drawArmoryButton(u, false);
             }
         }
         batch.end();
@@ -551,8 +554,10 @@ public final class Hud {
         batch.draw(pixel, 0, 0, width, height);
         batch.setColor(Color.WHITE);
         textCentered("PAUSED", width * 0.5f, height * 0.62f, 44 * u, WHITE, true);
-        textCentered("CLICK TO CAPTURE MOUSE  ·  ESC TO RESUME", width * 0.5f,
-                height * 0.62f - 40 * u, 12 * u, AMBER, false);
+        textCentered("CLICK ARMORY TO CHANGE RIFLE, SCOPE, OR RANGE", width * 0.5f,
+                height * 0.62f - 40 * u, 14 * u, AMBER, false);
+        textCentered("CLICK ANYWHERE ELSE OR PRESS ESC TO RESUME", width * 0.5f,
+                height * 0.62f - 62 * u, 12 * u, DIM, false);
         String[] lines = {
                 "LMB fire    RMB scope (does not fire)    SHIFT breathe",
                 "ARROWS turrets    1-7 weapon    L rangefinder    TAB DOPE",
@@ -687,6 +692,28 @@ public final class Hud {
             shapes.circle(cx, cy, 3 * u, 12);
         }
         shapes.end();
+    }
+
+    private void drawArmoryButton(float u, boolean big) {
+        float x = com.snipersim.render.ArmoryButton.cornerX(width, height);
+        float top = com.snipersim.render.ArmoryButton.cornerTop(height);
+        float w = com.snipersim.render.ArmoryButton.boxW(height);
+        float h = com.snipersim.render.ArmoryButton.boxH(height);
+        paintArmory(x, height - (top + h), w, h, 18f * u);
+        if (big) {
+            float bw = 360f * u;
+            float bh = 78f * u;
+            paintArmory(width * 0.5f - bw * 0.5f, height - (height * 0.48f + bh), bw, bh, 26f * u);
+        }
+    }
+
+    private void paintArmory(float x, float y, float w, float h, float size) {
+        batch.setColor(0.22f, 0.15f, 0.05f, 0.95f);
+        batch.draw(pixel, x, y, w, h);
+        batch.setColor(AMBER.r, AMBER.g, AMBER.b, 1f);
+        batch.draw(pixel, x, y + h - 4f, w, 4f);
+        batch.setColor(Color.WHITE);
+        textCentered("ARMORY", x + w * 0.5f, y + h - 8f, size, AMBER, true);
     }
 
     private void drawTouchControls(float u) {

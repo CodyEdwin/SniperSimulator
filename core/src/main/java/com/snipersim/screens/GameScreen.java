@@ -158,6 +158,11 @@ public final class GameScreen extends ScreenAdapter {
 
         @Override
         public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+            if (!smokeTest && com.snipersim.render.ArmoryButton.hit(screenX, screenY,
+                    Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), paused || briefing)) {
+                openArmory();
+                return true;
+            }
             if (!android) {
                 return false;
             }
@@ -392,10 +397,7 @@ public final class GameScreen extends ScreenAdapter {
             helpVisible = !helpVisible;
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.C) && !smokeTest) {
-            paused = true;
-            endBulletCam();
-            releaseMouse();
-            game.setScreen(new CatalogScreen(game, this, loadout.copy()));
+            openArmory();
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
             if (bulletCamActive) {
@@ -1418,6 +1420,16 @@ public final class GameScreen extends ScreenAdapter {
 
     @Override
     public void resume() {
+    }
+
+    private void openArmory() {
+        if (smokeTest) {
+            return;
+        }
+        paused = true;
+        endBulletCam();
+        releaseMouse();
+        game.setScreen(new CatalogScreen(game, this, loadout.copy()));
     }
 
     public RangeCourse course() {

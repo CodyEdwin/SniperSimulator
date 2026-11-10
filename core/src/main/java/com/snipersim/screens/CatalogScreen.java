@@ -27,6 +27,9 @@ import java.util.Locale;
  * reticle, sight height and zero before deploying.
  */
 public final class CatalogScreen extends ScreenAdapter {
+    private static final float RIFLE_ROW = 56f;
+    private static final float OPTIC_ROW = 36f;
+    private static final float TUNE_ROW = 38f;
     private static final int TUNE_ROWS = 6;
     private static final String[] TUNE_LABELS = {
             "ZOOM MIN", "ZOOM MAX", "ZOOM USED", "RETICLE", "SIGHT HEIGHT", "ZERO"
@@ -143,39 +146,39 @@ public final class CatalogScreen extends ScreenAdapter {
     private void draw() {
         float u = height / 900f;
         float m = 22f * u;
-        text("ARMORY", m, height - 18f * u, 28f * u, true, new Color(0.96f, 0.68f, 0.28f, 1f));
-        text("RIFLE, SCOPE AND ZERO  ·  ENTER DEPLOY  ·  ARROWS ADJUST  ·  ESC BACK",
-                m, height - 52f * u, 12f * u, false, new Color(0.62f, 0.67f, 0.58f, 1f));
+        text("ARMORY", m, height - 16f * u, 40f * u, true, new Color(0.96f, 0.68f, 0.28f, 1f));
+        text("CLICK A RIFLE, A SCOPE, THEN − OR +    ·    CLICK DEPLOY",
+                m, height - 62f * u, 18f * u, false, new Color(0.62f, 0.67f, 0.58f, 1f));
         float chip = 0f;
         for (RangeCourse course : RangeCourse.values()) {
             boolean on = course == loadout.range;
-            panel(m + chip, 16f * u, 250f * u, 42f * u,
+            panel(m + chip, 16f * u, 250f * u, 56f * u,
                     on ? new Color(0.20f, 0.14f, 0.05f, 0.95f) : new Color(0.03f, 0.04f, 0.035f, 0.9f));
-            text(course.title, m + chip + 12f * u, 44f * u, 12f * u, on,
+            text(course.title, m + chip + 12f * u, 54f * u, 18f * u, on,
                     on ? new Color(0.96f, 0.68f, 0.28f, 1f) : Color.WHITE);
             chip += 258f * u;
         }
 
-        float top = height - 78f * u;
+        float top = height - 96f * u;
         float gap = 12f * u;
         float colW = (width - m * 2f - gap * 2f) / 3f;
-        float listH = top - 70f * u;
+        float listH = top - 84f * u;
         drawRifles(m, top - listH, colW, listH, u);
         drawRifleCard(m + colW + gap, top - listH, colW, listH, u);
         drawBuild(m + (colW + gap) * 2f, top - listH, colW, listH, u);
 
-        float deployW = 220f * u;
-        float deployH = 42f * u;
+        float deployW = 240f * u;
+        float deployH = 56f * u;
         panel(width - m - deployW, 16f * u, deployW, deployH, new Color(0.20f, 0.14f, 0.05f, 0.95f));
-        text("DEPLOY", width - m - deployW + 58f * u, 16f * u + deployH - 8f * u, 16f * u, true,
+        text("DEPLOY", width - m - deployW + 62f * u, 16f * u + deployH - 12f * u, 22f * u, true,
                 new Color(0.96f, 0.68f, 0.28f, 1f));
     }
 
     private void drawRifles(float x, float y, float w, float h, float u) {
         panel(x, y, w, h, new Color(0.025f, 0.032f, 0.028f, 0.92f));
-        text("RIFLES", x + 12f * u, y + h - 8f * u, 13f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
-        float rowH = 36f * u;
-        float rowY = y + h - 36f * u;
+        text("RIFLES", x + 12f * u, y + h - 10f * u, 20f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
+        float rowH = RIFLE_ROW * u;
+        float rowY = y + h - 48f * u;
         for (int i = 0; i < WeaponCatalog.all().size(); i++) {
             Weapon weapon = WeaponCatalog.byIndex(i);
             boolean on = i == loadout.rifleIndex;
@@ -186,9 +189,9 @@ public final class CatalogScreen extends ScreenAdapter {
                 batch.draw(pixel, x + 8f * u, rowY - rowH + 8f * u, 3f * u, rowH - 4f * u);
                 batch.setColor(Color.WHITE);
             }
-            text((i + 1) + "  " + weapon.name, x + 18f * u, rowY - 4f * u, 13f * u, on,
+            text((i + 1) + "  " + weapon.name, x + 18f * u, rowY - 2f * u, 20f * u, on,
                     on ? Color.WHITE : new Color(0.62f, 0.67f, 0.58f, 1f));
-            text(weapon.caliber + "  ·  " + weapon.action.label, x + 18f * u, rowY - 20f * u, 10f * u, false,
+            text(weapon.caliber + "  ·  " + weapon.action.label, x + 18f * u, rowY - 26f * u, 16f * u, false,
                     new Color(0.62f, 0.67f, 0.58f, 1f));
             rowY -= rowH;
         }
@@ -197,8 +200,8 @@ public final class CatalogScreen extends ScreenAdapter {
     private void drawRifleCard(float x, float y, float w, float h, float u) {
         panel(x, y, w, h, new Color(0.025f, 0.032f, 0.028f, 0.92f));
         Weapon weapon = WeaponCatalog.byIndex(loadout.rifleIndex);
-        text(weapon.name, x + 14f * u, y + h - 10f * u, 18f * u, true, Color.WHITE);
-        text(weapon.designation, x + 14f * u, y + h - 36f * u, 12f * u, false,
+        text(weapon.name, x + 14f * u, y + h - 12f * u, 26f * u, true, Color.WHITE);
+        text(weapon.designation, x + 14f * u, y + h - 46f * u, 18f * u, false,
                 new Color(0.62f, 0.67f, 0.58f, 1f));
         String[] lines = {
                 weapon.caliber + "  ·  " + weapon.action.label,
@@ -213,40 +216,45 @@ public final class CatalogScreen extends ScreenAdapter {
                 "Scope, reticle, height and zero",
                 "are set on the build."
         };
-        float lineY = y + h - 64f * u;
+        float lineY = y + h - 82f * u;
         for (String line : lines) {
-            text(line, x + 14f * u, lineY, 12f * u, false, new Color(0.91f, 0.93f, 0.88f, 1f));
-            lineY -= 22f * u;
+            text(line, x + 14f * u, lineY, 18f * u, false, new Color(0.91f, 0.93f, 0.88f, 1f));
+            lineY -= 32f * u;
         }
     }
 
     private void drawBuild(float x, float y, float w, float h, float u) {
         panel(x, y, w, h, new Color(0.025f, 0.032f, 0.028f, 0.92f));
-        text("SCOPE", x + 12f * u, y + h - 8f * u, 13f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
-        float rowH = 22f * u;
-        float rowY = y + h - 32f * u;
+        text("SCOPE", x + 12f * u, y + h - 10f * u, 20f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
+        float rowH = OPTIC_ROW * u;
+        float rowY = y + h - 46f * u;
         for (int i = 0; i < OpticCatalog.all().size(); i++) {
             Optic optic = OpticCatalog.byIndex(i);
             boolean on = i == loadout.opticIndex && column != 0;
             boolean named = optic.name.equals(loadout.opticName);
-            text(optic.name, x + 12f * u, rowY, 10.5f * u, named, named ? new Color(0.96f, 0.68f, 0.28f, 1f)
+            text(optic.name, x + 12f * u, rowY, 17f * u, named, named ? new Color(0.96f, 0.68f, 0.28f, 1f)
                     : new Color(0.75f, 0.78f, 0.72f, 1f));
             rowY -= rowH;
         }
-        text("BUILD", x + 12f * u, rowY - 4f * u, 13f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
-        rowY -= 26f * u;
+        text("BUILD", x + 12f * u, rowY - 6f * u, 20f * u, true, new Color(0.48f, 0.82f, 0.80f, 1f));
+        rowY -= 36f * u;
         for (int i = 0; i < TUNE_ROWS; i++) {
             boolean on = column == 2 && tuneRow == i;
             if (on) {
                 batch.setColor(0.12f, 0.10f, 0.05f, 0.9f);
-                batch.draw(pixel, x + 8f * u, rowY - 16f * u, w - 16f * u, 20f * u);
+                batch.draw(pixel, x + 8f * u, rowY - 22f * u, w - 16f * u, 30f * u);
                 batch.setColor(Color.WHITE);
             }
-            text(TUNE_LABELS[i], x + 14f * u, rowY, 11f * u, false, new Color(0.62f, 0.67f, 0.58f, 1f));
-            text(tuneValue(i), x + w - 150f * u, rowY, 12f * u, true, Color.WHITE);
-            rowY -= 24f * u;
+            float btn = 42f * u;
+            panel(x + 10f * u, rowY - 28f * u, btn, 34f * u, new Color(0.16f, 0.12f, 0.05f, 0.95f));
+            panel(x + w - 14f * u - btn, rowY - 28f * u, btn, 34f * u, new Color(0.16f, 0.12f, 0.05f, 0.95f));
+            text("-", x + 22f * u, rowY - 2f * u, 22f * u, true, new Color(0.96f, 0.68f, 0.28f, 1f));
+            text("+", x + w - 4f * u - btn, rowY - 2f * u, 22f * u, true, new Color(0.96f, 0.68f, 0.28f, 1f));
+            text(TUNE_LABELS[i], x + 62f * u, rowY, 17f * u, false, new Color(0.62f, 0.67f, 0.58f, 1f));
+            text(tuneValue(i), x + w * 0.46f, rowY, 18f * u, true, Color.WHITE);
+            rowY -= TUNE_ROW * u;
         }
-        text("ISSUED SETUP", x + 14f * u, y + 16f * u, 12f * u, true, new Color(0.56f, 0.85f, 0.46f, 1f));
+        text("ISSUED SETUP", x + 14f * u, y + 18f * u, 18f * u, true, new Color(0.56f, 0.85f, 0.46f, 1f));
     }
 
     private String tuneValue(int row) {
@@ -271,14 +279,14 @@ public final class CatalogScreen extends ScreenAdapter {
         float m = 22f * u;
         float gap = 12f * u;
         float colW = (width - m * 2f - gap * 2f) / 3f;
-        float panelTop = height - 78f * u;
-        float panelBottom = 70f * u;
+        float panelTop = height - 96f * u;
+        float panelBottom = 84f * u;
         float py = height - y;
-        if (py >= 16f * u && py <= 58f * u && x >= width - m - 220f * u) {
+        if (py >= 16f * u && py <= 72f * u && x >= width - m - 240f * u) {
             deploy();
             return;
         }
-        if (py >= 16f * u && py <= 58f * u && x >= m && x < m + 258f * u * RangeCourse.values().length) {
+        if (py >= 16f * u && py <= 72f * u && x >= m && x < m + 258f * u * RangeCourse.values().length) {
             int index = (int) ((x - m) / (258f * u));
             if (index >= 0 && index < RangeCourse.values().length) {
                 loadout.range = RangeCourse.values()[index];
@@ -286,7 +294,7 @@ public final class CatalogScreen extends ScreenAdapter {
             return;
         }
         if (x >= m && x < m + colW && py <= panelTop && py >= panelBottom) {
-            int row = (int) ((panelTop - 36f * u - py) / (36f * u));
+            int row = (int) ((panelTop - 48f * u - py) / (RIFLE_ROW * u));
             if (row >= 0 && row < WeaponCatalog.all().size()) {
                 loadout.rifleIndex = row;
                 column = 0;
@@ -297,19 +305,27 @@ public final class CatalogScreen extends ScreenAdapter {
         if (x < buildX || py < panelBottom || py > panelTop) {
             return;
         }
-        float opticTop = panelTop - 32f * u;
-        float opticBottom = opticTop - OpticCatalog.all().size() * 22f * u;
+        float opticTop = panelTop - 46f * u;
+        float opticBottom = opticTop - OpticCatalog.all().size() * OPTIC_ROW * u;
         if (py <= opticTop && py > opticBottom) {
-            loadout.adoptOptic((int) ((opticTop - py) / (22f * u)));
+            loadout.adoptOptic((int) ((opticTop - py) / (OPTIC_ROW * u)));
             column = 1;
             return;
         }
-        float tuneTop = opticBottom - 26f * u;
-        int tune = (int) ((tuneTop - py) / (24f * u));
+        float tuneTop = opticBottom - 36f * u;
+        int tune = (int) ((tuneTop - py) / (TUNE_ROW * u));
         if (tune >= 0 && tune < TUNE_ROWS) {
             column = 2;
             tuneRow = tune;
-            adjust(x > buildX + colW * 0.55f ? 1 : -1);
+            float rowBase = tuneTop - tune * TUNE_ROW * u;
+            float btn = 42f * u;
+            if (py <= rowBase + 6f * u && py >= rowBase - 28f * u) {
+                if (x < buildX + 10f * u + btn + 8f * u) {
+                    adjust(-1);
+                } else if (x > buildX + colW - 14f * u - btn) {
+                    adjust(1);
+                }
+            }
             return;
         }
         if (py < panelBottom + 40f * u) {
@@ -401,7 +417,7 @@ public final class CatalogScreen extends ScreenAdapter {
 
     private void text(String value, float x, float top, float size, boolean strong, Color color) {
         BitmapFont face = strong ? bold : font;
-        face.getData().setScale(size / 64f);
+        face.getData().setScale(size * 1.35f / 64f);
         face.setColor(color);
         face.draw(batch, value, x, top);
     }
@@ -409,7 +425,7 @@ public final class CatalogScreen extends ScreenAdapter {
     private static BitmapFont generate(FreeTypeFontGenerator generator) {
         FreeTypeFontGenerator.FreeTypeFontParameter parameter =
                 new FreeTypeFontGenerator.FreeTypeFontParameter();
-        parameter.size = 48;
+        parameter.size = 64;
         parameter.incremental = true;
         BitmapFont result = generator.generateFont(parameter);
         result.setUseIntegerPositions(false);
