@@ -1,6 +1,7 @@
 package com.snipersim.render;
 
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.math.Matrix4;
@@ -28,7 +29,8 @@ public final class TargetVisual {
         Color paint = target.paint;
 
         if (target.kind == RangeTarget.Kind.GONG) {
-            Model face = ModelFactory.texturedBox(target.width, target.height, 0.055f, ModelFactory.bullseye());
+            Texture faceTexture = target.paper ? ModelFactory.paperTarget() : ModelFactory.bullseye();
+            Model face = ModelFactory.texturedBox(target.width, target.height, 0.055f, faceTexture);
             ownedModels.add(face);
             add(face, 0, 0, 0);
 
@@ -45,7 +47,7 @@ public final class TargetVisual {
             ownedModels.add(footB);
             add(footB, 0.28f, -target.height * 0.5f - standHeight * 0.30f, -0.10f);
 
-            Model cross = ModelFactory.box(0.7f, 0.05f, 0.05f, STAND);
+            Model cross = ModelFactory.box(Math.min(target.width * 1.15f, 1.4f), 0.05f, 0.05f, STAND);
             ownedModels.add(cross);
             add(cross, 0, -target.height * 0.5f - standHeight + 0.02f, -0.04f);
         } else {
@@ -104,6 +106,9 @@ public final class TargetVisual {
 
     public void render(com.badlogic.gdx.graphics.g3d.ModelBatch batch,
                        com.badlogic.gdx.graphics.g3d.Environment environment) {
+        if (!target.active) {
+            return;
+        }
         for (ModelInstance part : parts) {
             batch.render(part, environment);
         }

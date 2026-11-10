@@ -189,8 +189,8 @@ public final class Effects {
         if (alpha <= 0.01f) {
             return;
         }
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        batch.setColor(0.82f, 0.86f, 0.88f, alpha * 0.55f);
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
+        batch.setColor(1f, 0.72f, 0.28f, Math.min(1f, alpha * 2.4f));
         float prevX = 0;
         float prevY = 0;
         boolean hasPrev = false;
@@ -211,7 +211,7 @@ public final class Effects {
                 continue;
             }
             if (hasPrev) {
-                drawSegment(batch, prevX, prevY, projected.x, projected.y, 1.35f);
+                drawSegment(batch, prevX, prevY, projected.x, projected.y, 3.2f, width, height);
             }
             prevX = projected.x;
             prevY = projected.y;
@@ -220,7 +220,7 @@ public final class Effects {
 
         visualPosition(shot, maxTime, bulletPos);
         if (project(camera, bulletPos, width, height)) {
-            float size = Math.max(2f, pixelSize(camera, bulletPos, 0.16f, height));
+            float size = Math.max(5f, pixelSize(camera, bulletPos, 0.22f, height));
             batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
             batch.setColor(1f, 0.68f, 0.26f, 0.85f * shot.trailAlpha);
             batch.draw(dot, projected.x - size, projected.y - size, size * 2, size * 2);
@@ -244,11 +244,13 @@ public final class Effects {
         out.z += (shot.muzzle.z - shot.trajectory.originZ) * keep;
     }
 
-    private void drawSegment(SpriteBatch batch, float x1, float y1, float x2, float y2, float thickness) {
+    private void drawSegment(SpriteBatch batch, float x1, float y1, float x2, float y2,
+                              float thickness, int width, int height) {
         float dx = x2 - x1;
         float dy = y2 - y1;
         float len = (float) Math.sqrt(dx * dx + dy * dy);
-        if (len < 0.01f || len > 500f) {
+        float limit = Math.max(width, height) * 1.6f;
+        if (len < 0.5f || len > limit) {
             return;
         }
         float angle = (float) (Math.atan2(dy, dx) * MathUtils.radiansToDegrees);

@@ -248,6 +248,7 @@ public final class GameScreen extends ScreenAdapter {
         world = new World(this.loadout.range);
         if (world.course.competition) {
             matchTime = MATCH[0].seconds;
+            world.showDistance(MATCH[0].meters);
         }
         buildRangeCard();
         shooterEye = new Vector3(world.shooterEye);
@@ -775,6 +776,9 @@ public final class GameScreen extends ScreenAdapter {
                 break;
             }
             for (RangeTarget target : world.targets) {
+                if (!target.active) {
+                    continue;
+                }
                 target.boundsAt(fireMissionTime + t1, scratchBox);
                 scratchBox.min.add(-0.015f, -0.015f, -0.015f);
                 scratchBox.max.add(0.015f, 0.015f, 0.015f);
@@ -1461,6 +1465,7 @@ public final class GameScreen extends ScreenAdapter {
             return;
         }
         matchTime = MATCH[matchStage].seconds;
+        world.showDistance(MATCH[matchStage].meters);
         showToast(false, MATCH[matchStage].name,
                 MATCH[matchStage].shots + " SHOTS", "");
         toastTimer = 2.5f;

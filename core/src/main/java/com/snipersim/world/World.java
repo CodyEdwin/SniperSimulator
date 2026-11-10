@@ -116,27 +116,41 @@ public final class World {
     }
 
     private void buildPerryTargets() {
+        // Real high-power cards: 5-ring is 37 in at 200 yd, 1.5x at 300, 3x at 600.
+        // Banks are spaced in angle so neighbors sit left and right, not on top of
+        // the target you are shooting. Only one yard line is shown at a time.
         float[] yards = {200f, 300f, 600f};
         float[] fiveRing = {0.940f, 1.410f, 2.819f};
-        float[] banks = {-7f, -3.5f, 0f, 3.5f, 7f};
         int id = 0;
         for (int i = 0; i < yards.length; i++) {
             float z = -RangeCourse.yards(yards[i]);
-            for (float x : banks) {
+            float size = fiveRing[i];
+            float spacing = Math.max(size * 4.2f, RangeCourse.yards(yards[i]) * 0.07f);
+            for (int slot = -2; slot <= 2; slot++) {
+                float x = slot * spacing;
                 float ground = terrain.height(x, z);
-                float size = fiveRing[i];
-                float centerY = ground + 0.35f + size * 0.5f;
+                float centerY = ground + 1.25f + size * 0.5f;
                 RangeTarget target = new RangeTarget(id++, RangeTarget.Kind.GONG, size, size, 0.04f,
                         x, centerY, z, 0, 0, 0, shooterEye.x, shooterEye.z,
-                        new Color(0.96f, 0.96f, 0.94f, 1f));
-                if (Math.abs(x) < 0.1f) {
-                    target.name = String.format(java.util.Locale.ROOT, "%.0f YD", yards[i]);
-                } else {
-                    target.name = "FRAME";
-                }
+                        new Color(0.96f, 0.95f, 0.90f, 1f));
+                target.paper = true;
+                target.active = i == 0;
+                target.name = slot == 0
+                        ? String.format(java.util.Locale.ROOT, "%.0f YD", yards[i])
+                        : "PIT";
                 targets.add(target);
                 targetVisuals.add(new TargetVisual(target, ground));
             }
+        }
+    }
+
+    /** Camp Perry shows one yard line. Other courses ignore this. */
+    public void showDistance(float meters) {
+        if (course != RangeCourse.CAMP_PERRY) {
+            return;
+        }
+        for (RangeTarget target : targets) {
+            target.active = Math.abs(target.distance - meters) < 30f;
         }
     }
 

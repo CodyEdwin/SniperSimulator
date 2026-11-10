@@ -29,6 +29,9 @@ public final class RangeTarget {
     public final int basePoints;
     public final Color paint;
     public String name;
+    /** Hidden yard lines stay out of the sight picture until that stage. */
+    public boolean active = true;
+    public boolean paper;
 
     public int hits;
     public float hitFlash;

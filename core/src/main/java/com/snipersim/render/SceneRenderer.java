@@ -117,7 +117,9 @@ public final class SceneRenderer {
     public void renderWorld(Camera camera, World world, boolean showRifle) {
         modelBatch.begin(camera);
         modelBatch.render(world.terrainInstance, environment);
-        modelBatch.render(world.mountainInstance, environment);
+        if (world.course != com.snipersim.world.RangeCourse.CAMP_PERRY) {
+            modelBatch.render(world.mountainInstance, environment);
+        }
         world.renderScenery(modelBatch, environment);
         for (TargetVisual visual : world.targetVisuals) {
             visual.render(modelBatch, environment);

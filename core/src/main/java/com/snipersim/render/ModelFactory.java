@@ -18,6 +18,7 @@ public final class ModelFactory {
     private static final long USAGE = VertexAttributes.Usage.Position | VertexAttributes.Usage.Normal;
     private static ModelBuilder builder;
     private static Texture bullseye;
+    private static Texture paperTarget;
     private static Texture softDot;
 
     private ModelFactory() {
@@ -38,7 +39,9 @@ public final class ModelFactory {
     public static Model texturedBox(float width, float height, float depth, Texture texture) {
         Material material = new Material(
                 TextureAttribute.createDiffuse(texture),
-                ColorAttribute.createDiffuse(Color.WHITE));
+                ColorAttribute.createDiffuse(Color.WHITE),
+                ColorAttribute.createEmissive(new Color(0.35f, 0.35f, 0.33f, 1f)),
+                IntAttribute.createCullFace(GL20.GL_NONE));
         return builder().createBox(width, height, depth, material, USAGE | VertexAttributes.Usage.TextureCoordinates);
     }
 
@@ -69,6 +72,14 @@ public final class ModelFactory {
             bullseye = buildBullseye();
         }
         return bullseye;
+    }
+
+    /** White high-power card: black aiming bull, white inner rings. */
+    public static Texture paperTarget() {
+        if (paperTarget == null) {
+            paperTarget = buildPaperTarget();
+        }
+        return paperTarget;
     }
 
     public static Texture softDot() {
@@ -109,6 +120,25 @@ public final class ModelFactory {
         return texture;
     }
 
+    private static Texture buildPaperTarget() {
+        int size = 256;
+        Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
+        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
+        pixmap.fill();
+        pixmap.setColor(0.08f, 0.08f, 0.08f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 78);
+        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 46);
+        pixmap.setColor(0.08f, 0.08f, 0.08f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 28);
+        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 12);
+        Texture texture = new Texture(pixmap, true);
+        texture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        pixmap.dispose();
+        return texture;
+    }
+
     private static Texture buildSoftDot() {
         int size = 128;
         Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
@@ -135,6 +165,10 @@ public final class ModelFactory {
         if (bullseye != null) {
             bullseye.dispose();
             bullseye = null;
+        }
+        if (paperTarget != null) {
+            paperTarget.dispose();
+            paperTarget = null;
         }
         if (softDot != null) {
             softDot.dispose();
