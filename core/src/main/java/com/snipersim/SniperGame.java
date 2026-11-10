@@ -1,7 +1,9 @@
 package com.snipersim;
 
 import com.badlogic.gdx.Game;
+import com.snipersim.screens.CatalogScreen;
 import com.snipersim.screens.GameScreen;
+import com.snipersim.weapons.Loadout;
 
 /** libGDX application shell. */
 public final class SniperGame extends Game {
@@ -13,7 +15,11 @@ public final class SniperGame extends Game {
 
     @Override
     public void create() {
-        setScreen(new GameScreen(this, smokeTest));
+        if (smokeTest) {
+            setScreen(new GameScreen(this, true, Loadout.issued()));
+        } else {
+            setScreen(new CatalogScreen(this, null, Loadout.issued()));
+        }
     }
 
     @Override

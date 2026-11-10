@@ -79,6 +79,26 @@ public final class Weapon {
         this.soundPitch = soundPitch;
     }
 
+    /** Same rifle and cartridge, with a chosen optic package. */
+    public Weapon withBuild(String optic, double scopeMinZoom, double scopeMaxZoom,
+                            double scopeDefaultZoom, Reticle reticle, double sightHeightMeters) {
+        double min = clampZoom(scopeMinZoom);
+        double max = Math.max(min, clampZoom(scopeMaxZoom));
+        double sight = sightHeightMeters < 0.03 ? 0.03 : Math.min(0.09, sightHeightMeters);
+        return new Weapon(id, name, shortName, designation, caliber, bullet, magazineSize, action,
+                cycleTime, recoilPitchRad, recoilYawRad, min, max,
+                Math.min(max, Math.max(min, scopeDefaultZoom)), optic, sight, maxRangeMeters,
+                damage, penetration, reticle == null ? this.reticle : reticle, accent,
+                muzzleFlashScale, soundPitch);
+    }
+
+    private static double clampZoom(double zoom) {
+        if (zoom < 1) {
+            return 1;
+        }
+        return Math.min(40, zoom);
+    }
+
     public String specLine() {
         return String.format(java.util.Locale.ROOT,
                 "%s | %.0f gr | %.0f m/s | G7 %.3f | %s",

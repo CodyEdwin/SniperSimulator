@@ -26,6 +26,7 @@ import com.snipersim.render.HudState;
 import com.snipersim.render.SceneRenderer;
 import com.snipersim.render.ScopeRenderer;
 import com.snipersim.util.BallisticMath;
+import com.snipersim.weapons.Loadout;
 import com.snipersim.weapons.Weapon;
 import com.snipersim.weapons.WeaponCatalog;
 import com.snipersim.world.RangeTarget;
@@ -64,6 +65,7 @@ public final class GameScreen extends ScreenAdapter {
     private final HudState hudState = new HudState();
     private final BoundingBox scratchBox = new BoundingBox();
 
+    private Loadout loadout;
     private Weapon weapon;
     private int weaponIndex;
     private int zeroDistance = 100;
@@ -222,8 +224,13 @@ public final class GameScreen extends ScreenAdapter {
     };
 
     public GameScreen(SniperGame game, boolean smokeTest) {
+        this(game, smokeTest, Loadout.issued());
+    }
+
+    public GameScreen(SniperGame game, boolean smokeTest, Loadout loadout) {
         this.game = game;
         this.smokeTest = smokeTest;
+        this.loadout = loadout.copy();
         this.android = Gdx.app.getType() == Application.ApplicationType.Android;
         world = new World();
         shooterEye = new Vector3(world.shooterEye);
@@ -235,8 +242,9 @@ public final class GameScreen extends ScreenAdapter {
         camera.direction.set(0, 0, -1);
         camera.update();
 
-        weapon = WeaponCatalog.defaultWeapon();
-        weaponIndex = WeaponCatalog.indexOf(weapon);
+        weapon = this.loadout.build();
+        weaponIndex = this.loadout.rifleIndex;
+        zeroDistance = this.loadout.zeroDistance;
         zoom = weapon.scopeDefaultZoom;
 
         renderer = new SceneRenderer(weapon.accent);
@@ -364,6 +372,12 @@ public final class GameScreen extends ScreenAdapter {
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.H) && !briefing) {
             helpVisible = !helpVisible;
+        }
+        if (Gdx.input.isKeyJustPressed(Input.Keys.C) && !smokeTest) {
+            paused = true;
+            endBulletCam();
+            releaseMouse();
+            game.setScreen(new CatalogScreen(game, this, loadout.copy()));
         }
         if (Gdx.input.isKeyJustPressed(Input.Keys.V)) {
             if (bulletCamActive) {
@@ -1009,13 +1023,34 @@ public final class GameScreen extends ScreenAdapter {
         toastTimer = 1.6f;
     }
 
+    public void applyLoadout(Loadout next) {
+        loadout = next.copy();
+        weapon = loadout.build();
+        weaponIndex = loadout.rifleIndex;
+        zeroDistance = loadout.zeroDistance;
+        zoom = weapon.scopeDefaultZoom;
+        elevationClicks = 0;
+        windageClicks = 0;
+        holdoverMils = 0;
+        boltReady = true;
+        boltTimer = 0;
+        briefing = false;
+        paused = false;
+        recomputeZero();
+        if (audio != null) {
+            audio.boltCycle();
+        }
+        showToast(false, weapon.name, weapon.optic, "");
+        toastTimer = 2.2f;
+    }
+
     private void switchWeapon(int index) {
-        Weapon next = WeaponCatalog.byIndex(index);
-        if (next == weapon) {
+        if (index == weaponIndex) {
             return;
         }
-        weapon = next;
-        weaponIndex = WeaponCatalog.indexOf(weapon);
+        loadout.rifleIndex = index;
+        weapon = loadout.build();
+        weaponIndex = index;
         boltReady = true;
         boltTimer = 0;
         zoom = weapon.scopeDefaultZoom;

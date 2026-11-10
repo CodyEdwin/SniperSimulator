@@ -24,7 +24,7 @@ The helper script sets up the toolchain and picks the right Gradle task:
 ./run.sh android      # debug APK
 ./run.sh install      # install APK on a connected adb device
 ./run.sh package      # self-contained desktop app image zip
-./run.sh fatjar       # single executable DaggerRidge-1.0.5.jar
+./run.sh fatjar       # single executable DaggerRidge-1.0.6.jar
 ./run.sh smoke        # headless render/ballistics smoke test
 ```
 
@@ -137,12 +137,12 @@ Ammunition is unlimited. Magazine size, bolt or semi-auto cycle, recoil, damage 
 `./run.sh package` builds a self-contained native app image with `jpackage` for the current OS, including a private Java runtime, and zips it:
 
 ```
-lwjgl3/build/distributions/DaggerRidge-1.0.5-linux-x64.zip
-lwjgl3/build/distributions/DaggerRidge-1.0.5-windows-x64.zip
-lwjgl3/build/distributions/DaggerRidge-1.0.5-macos-arm64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.6-linux-x64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.6-windows-x64.zip
+lwjgl3/build/distributions/DaggerRidge-1.0.6-macos-arm64.zip
 ```
 
-Extract the archive and run `DaggerRidge/bin/DaggerRidge` (`.exe` on Windows, `.app` launcher on macOS). No installed Java is required. `./run.sh fatjar` builds `lwjgl3/build/libs/DaggerRidge-1.0.5.jar`, a cross-platform fat jar that needs Java 11+ and runs with `java -jar DaggerRidge-1.0.5.jar`. The optional `./gradlew :lwjgl3:desktopInstaller` task builds a `.deb`, `.msi` or `.dmg` using the host platform's jpackage tooling. The GitHub Actions workflow builds the app-image zip on Linux, Windows and macOS runners and the debug APK on Linux.
+Extract the archive and run `DaggerRidge/bin/DaggerRidge` (`.exe` on Windows, `.app` launcher on macOS). No installed Java is required. `./run.sh fatjar` builds `lwjgl3/build/libs/DaggerRidge-1.0.6.jar`, a cross-platform fat jar that needs Java 11+ and runs with `java -jar DaggerRidge-1.0.6.jar`. The optional `./gradlew :lwjgl3:desktopInstaller` task builds a `.deb`, `.msi` or `.dmg` using the host platform's jpackage tooling. The GitHub Actions workflow builds the app-image zip on Linux, Windows and macOS runners and the debug APK on Linux.
 
 ## Project layout
 
