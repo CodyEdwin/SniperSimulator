@@ -18,6 +18,7 @@ import com.snipersim.weapons.OpticCatalog;
 import com.snipersim.weapons.Reticle;
 import com.snipersim.weapons.Weapon;
 import com.snipersim.weapons.WeaponCatalog;
+import com.snipersim.world.RangeCourse;
 
 import java.util.Locale;
 
@@ -145,6 +146,15 @@ public final class CatalogScreen extends ScreenAdapter {
         text("ARMORY", m, height - 18f * u, 28f * u, true, new Color(0.96f, 0.68f, 0.28f, 1f));
         text("RIFLE, SCOPE AND ZERO  ·  ENTER DEPLOY  ·  ARROWS ADJUST  ·  ESC BACK",
                 m, height - 52f * u, 12f * u, false, new Color(0.62f, 0.67f, 0.58f, 1f));
+        float chip = 0f;
+        for (RangeCourse course : RangeCourse.values()) {
+            boolean on = course == loadout.range;
+            panel(m + chip, 16f * u, 250f * u, 42f * u,
+                    on ? new Color(0.20f, 0.14f, 0.05f, 0.95f) : new Color(0.03f, 0.04f, 0.035f, 0.9f));
+            text(course.title, m + chip + 12f * u, 44f * u, 12f * u, on,
+                    on ? new Color(0.96f, 0.68f, 0.28f, 1f) : Color.WHITE);
+            chip += 258f * u;
+        }
 
         float top = height - 78f * u;
         float gap = 12f * u;
@@ -268,6 +278,13 @@ public final class CatalogScreen extends ScreenAdapter {
             deploy();
             return;
         }
+        if (py >= 16f * u && py <= 58f * u && x >= m && x < m + 258f * u * RangeCourse.values().length) {
+            int index = (int) ((x - m) / (258f * u));
+            if (index >= 0 && index < RangeCourse.values().length) {
+                loadout.range = RangeCourse.values()[index];
+            }
+            return;
+        }
         if (x >= m && x < m + colW && py <= panelTop && py >= panelBottom) {
             int row = (int) ((panelTop - 36f * u - py) / (36f * u));
             if (row >= 0 && row < WeaponCatalog.all().size()) {
@@ -356,8 +373,12 @@ public final class CatalogScreen extends ScreenAdapter {
     }
 
     private void deploy() {
-        if (range == null) {
+        if (range == null || range.course() != loadout.range) {
+            GameScreen previous = range;
             game.setScreen(new GameScreen(game, false, loadout));
+            if (previous != null) {
+                previous.dispose();
+            }
         } else {
             range.applyLoadout(loadout);
             game.setScreen(range);

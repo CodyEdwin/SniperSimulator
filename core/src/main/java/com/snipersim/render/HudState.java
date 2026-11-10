@@ -45,6 +45,10 @@ public final class HudState {
     public BallisticTable dope;
     public boolean dopeVisible;
     public boolean briefing;
+    public String missionBrief = "";
+    public String rangeTitle = "";
+    public String matchLine = "";
+    public String[] rangeCard;
     public boolean paused;
     public boolean helpVisible;
     public boolean bulletCam;

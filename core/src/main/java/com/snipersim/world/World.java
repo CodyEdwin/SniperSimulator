@@ -30,12 +30,26 @@ public final class World {
     private final List<ModelInstance> scenery = new ArrayList<>();
     private final List<Model> ownedModels = new ArrayList<>();
     private final RandomXS128 random = new RandomXS128(0xD46E4B01L);
+    public final RangeCourse course;
     public float missionTime;
 
     public World() {
-        terrain = new Terrain();
-        atmosphere = Atmosphere.highDesert();
-        wind = new WindModel(6.4, 292, 2.3, 13, 0x51A7L);
+        this(RangeCourse.DAGGER);
+    }
+
+    public World(RangeCourse course) {
+        this.course = course == null ? RangeCourse.DAGGER : course;
+        terrain = new Terrain(this.course);
+        if (this.course == RangeCourse.CAMP_PERRY) {
+            atmosphere = Atmosphere.campPerry();
+            wind = new WindModel(5.2, 75, 2.4, 11, 0x0C0A7L);
+        } else if (this.course == RangeCourse.BISLEY) {
+            atmosphere = Atmosphere.bisley();
+            wind = new WindModel(4.1, 230, 1.5, 14, 0xB151EEL);
+        } else {
+            atmosphere = Atmosphere.highDesert();
+            wind = new WindModel(6.4, 292, 2.3, 13, 0x51A7L);
+        }
 
         shooterEye.set(0, terrain.shooterGround() + 1.12f, 0);
         terrainInstance = new ModelInstance(terrain.terrainModel());
@@ -48,6 +62,15 @@ public final class World {
     }
 
     private void buildTargets() {
+        if (course == RangeCourse.CAMP_PERRY) {
+            buildPerryTargets();
+            return;
+        }
+        if (course == RangeCourse.BISLEY) {
+            buildYardGongs(new double[] {300, 500, 600, 900, 1000, 1200},
+                    new float[] {0.55f, 0.62f, 0.70f, 0.85f, 0.95f, 1.10f});
+            return;
+        }
         // Centered on the firing line (x = 0) so every plate sits in the lane
         // the shooter is looking down. Distances stay staggered. Movers swing
         // a few metres either side of that centerline and still read as the
@@ -92,8 +115,60 @@ public final class World {
         targetVisuals.sort(Comparator.comparingDouble(v -> v.target().distance));
     }
 
+    private void buildPerryTargets() {
+        float[] yards = {200f, 300f, 600f};
+        float[] fiveRing = {0.940f, 1.410f, 2.819f};
+        float[] banks = {-7f, -3.5f, 0f, 3.5f, 7f};
+        int id = 0;
+        for (int i = 0; i < yards.length; i++) {
+            float z = -RangeCourse.yards(yards[i]);
+            for (float x : banks) {
+                float ground = terrain.height(x, z);
+                float size = fiveRing[i];
+                float centerY = ground + 0.35f + size * 0.5f;
+                RangeTarget target = new RangeTarget(id++, RangeTarget.Kind.GONG, size, size, 0.04f,
+                        x, centerY, z, 0, 0, 0, shooterEye.x, shooterEye.z,
+                        new Color(0.96f, 0.96f, 0.94f, 1f));
+                if (Math.abs(x) < 0.1f) {
+                    target.name = String.format(java.util.Locale.ROOT, "%.0f YD", yards[i]);
+                } else {
+                    target.name = "FRAME";
+                }
+                targets.add(target);
+                targetVisuals.add(new TargetVisual(target, ground));
+            }
+        }
+    }
+
+    private void buildYardGongs(double[] yards, float[] diameters) {
+        int id = 0;
+        for (int i = 0; i < yards.length; i++) {
+            float z = -RangeCourse.yards(yards[i]);
+            float size = diameters[i];
+            float ground = terrain.height(0, z);
+            float centerY = ground + 1.2f + size * 0.5f;
+            RangeTarget target = new RangeTarget(id++, RangeTarget.Kind.GONG, size, size, 0.06f,
+                    0, centerY, z, 0, 0, 0, shooterEye.x, shooterEye.z,
+                    new Color(0.82f, 0.36f, 0.13f, 1f));
+            target.name = String.format(java.util.Locale.ROOT, "%.0f YD", yards[i]);
+            targets.add(target);
+            targetVisuals.add(new TargetVisual(target, ground));
+        }
+    }
+
     private void buildFlags() {
-        for (int range = 100; range <= 1900; range += 200) {
+        if (course == RangeCourse.CAMP_PERRY) {
+            for (int yards = 100; yards <= 600; yards += 100) {
+                float z = -RangeCourse.yards(yards);
+                float side = yards % 200 == 0 ? 12f : -12f;
+                float ground = terrain.height(side, z);
+                flags.add(new WindFlag(yards, side, ground, z, 3.2f,
+                        new Color(0.96f, 0.82f, 0.20f, 1f)));
+            }
+            return;
+        }
+        int far = course == RangeCourse.BISLEY ? 1100 : 1900;
+        for (int range = 100; range <= far; range += 200) {
             float side = ((range / 200) % 2 == 0) ? 19f : -19f;
             float ground = terrain.height(side, -range);
             Color color = (range / 200) % 2 == 0
@@ -113,10 +188,14 @@ public final class World {
         ownedModels.add(coneB);
         ownedModels.add(rock);
 
-        for (int i = 0; i < 88; i++) {
+        int trees = course == RangeCourse.CAMP_PERRY ? 18 : 88;
+        for (int i = 0; i < trees; i++) {
             float side = random.nextBoolean() ? 1 : -1;
-            float x = side * (220 + random.nextFloat() * 1250);
-            float z = -80 - random.nextFloat() * 2780;
+            float x = side * (course == RangeCourse.CAMP_PERRY ? 30 + random.nextFloat() * 80
+                    : 220 + random.nextFloat() * 1250);
+            float z = course == RangeCourse.CAMP_PERRY
+                    ? 25 + random.nextFloat() * 140
+                    : -80 - random.nextFloat() * 2780;
             float ground = terrain.height(x, z);
             float scale = 0.65f + random.nextFloat() * 1.15f;
             ModelInstance trunkInstance = new ModelInstance(trunk);
@@ -132,6 +211,9 @@ public final class World {
             scenery.add(topInstance);
         }
 
+        if (course == RangeCourse.CAMP_PERRY) {
+            return;
+        }
         for (int i = 0; i < 46; i++) {
             float side = random.nextBoolean() ? 1 : -1;
             float x = side * (120 + random.nextFloat() * 1350);

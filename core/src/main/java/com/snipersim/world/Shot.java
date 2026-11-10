@@ -26,6 +26,8 @@ public final class Shot {
     public float trailAlpha = 1f;
     public float heat;
     public boolean followed;
+    /** Stage index when the shot was fired, or -1 outside a match. */
+    public int matchStage = -1;
 
     public Shot(Weapon weapon, Trajectory trajectory, float fireMissionTime,
                 double muzzleVelocity, RangeTarget target, int ring, float hitTime,

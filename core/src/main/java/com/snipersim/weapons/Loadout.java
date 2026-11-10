@@ -11,6 +11,7 @@ public final class Loadout {
     public Reticle reticle;
     public double sightHeight;
     public int zeroDistance = 100;
+    public com.snipersim.world.RangeCourse range = com.snipersim.world.RangeCourse.DAGGER;
 
     public static Loadout issued() {
         Weapon weapon = WeaponCatalog.defaultWeapon();
@@ -57,6 +58,7 @@ public final class Loadout {
         copy.reticle = reticle;
         copy.sightHeight = sightHeight;
         copy.zeroDistance = zeroDistance;
+        copy.range = range;
         return copy;
     }
 }

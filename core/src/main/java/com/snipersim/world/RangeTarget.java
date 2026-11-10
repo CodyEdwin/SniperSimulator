@@ -28,6 +28,7 @@ public final class RangeTarget {
     public final float distance;
     public final int basePoints;
     public final Color paint;
+    public String name;
 
     public int hits;
     public float hitFlash;
@@ -143,6 +144,9 @@ public final class RangeTarget {
     }
 
     public String label() {
+        if (name != null) {
+            return name;
+        }
         switch (kind) {
             case GONG:
                 return "STEEL GONG";

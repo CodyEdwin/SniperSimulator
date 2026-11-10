@@ -124,6 +124,9 @@ public final class Hud {
                 drawBreathBar(s, u);
                 drawCompass(s, u, top);
                 drawWindCall(s, u, top);
+                if (s.matchLine != null && !s.matchLine.isEmpty() && s.scopeAmount < 0.45) {
+                    textCentered(s.matchLine, width * 0.5f, top - 98f * u, 13f * u, AMBER, true);
+                }
                 if (s.scopeAmount > 0.25) {
                     drawScopeData(s, u);
                 }
@@ -472,14 +475,18 @@ public final class Hud {
         float col2 = width * 0.49f;
         float y = height - 180 * u;
         textTop("MISSION", col1, y, 15 * u, CYAN, true);
-        textTop("Engage the steel line from 200 to 2,000 m.", col1, y - 26 * u, 13 * u, WHITE, false);
+        textTop(s.missionBrief == null || s.missionBrief.isEmpty()
+                ? "Engage the steel line from 200 to 2,000 m." : s.missionBrief,
+                col1, y - 26 * u, 13 * u, WHITE, false);
         textTop("Read the wind, dial your DOPE and make the", col1, y - 45 * u, 13 * u, WHITE, false);
         textTop("first round count. Eleven targets. No markers.", col1, y - 64 * u, 13 * u, WHITE, false);
         textTop("[ ] / PGUP PGDN  holdover without dialing  ·  \\ clears",
                 col1, y - 83 * u, 10 * u, GREEN, false);
 
-        textTop("RANGE CARD", col1, y - 100 * u, 12 * u, AMBER, true);
-        String[] ranges = {"200 m  SILHOUETTE", "320 m  GONG", "450 m  GONG", "600 m  MOVER",
+        textTop(s.rangeTitle == null || s.rangeTitle.isEmpty() ? "RANGE CARD" : s.rangeTitle,
+                col1, y - 100 * u, 12 * u, AMBER, true);
+        String[] ranges = s.rangeCard != null && s.rangeCard.length > 0 ? s.rangeCard
+                : new String[] {"200 m  SILHOUETTE", "320 m  GONG", "450 m  GONG", "600 m  MOVER",
                 "760 m  GONG", "930 m  SILHOUETTE", "1,100 m  GONG", "1,280 m  MOVER",
                 "1,540 m  GONG", "1,780 m  SILHOUETTE", "2,000 m  GONG"};
         for (int i = 0; i < ranges.length; i++) {

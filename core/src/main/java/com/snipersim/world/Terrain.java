@@ -33,12 +33,18 @@ public final class Terrain implements TerrainFunction {
     public static final int CHUNK_Z = 40;
     public static final int CHUNKS = 6;
 
+    private final RangeCourse course;
     private final Model terrainModel;
     private final Model mountainModel;
     private final Texture groundTexture;
     private final Texture mountainTexture;
 
     public Terrain() {
+        this(RangeCourse.DAGGER);
+    }
+
+    public Terrain(RangeCourse course) {
+        this.course = course == null ? RangeCourse.DAGGER : course;
         groundTexture = buildGroundTexture();
         mountainTexture = buildMountainTexture();
         terrainModel = buildTerrainModel();
@@ -47,6 +53,12 @@ public final class Terrain implements TerrainFunction {
 
     @Override
     public double heightAt(double x, double z) {
+        if (course == RangeCourse.CAMP_PERRY) {
+            return perryHeight(x, z);
+        }
+        if (course == RangeCourse.BISLEY) {
+            return bisleyHeight(x, z);
+        }
         double ridge = 26.0 * Math.exp(-(z - 60.0) * (z - 60.0) / (2.0 * 150.0 * 150.0))
                 * Math.exp(-(x * x) / (2.0 * 950.0 * 950.0));
         double valley = -13.0 * Math.exp(-(z + 640.0) * (z + 640.0) / (2.0 * 700.0 * 700.0));
@@ -59,6 +71,31 @@ public final class Terrain implements TerrainFunction {
         double detail = 1.25 * Noise.value2D(x * 0.021, z * 0.021);
         double base = 18.0;
         return base + ridge + valley + farSlope + sideSpurs + rolling + detail;
+    }
+
+    /** Dead-flat Lake Erie grass, low pit berms, open water past 1,000 yards. */
+    private double perryHeight(double x, double z) {
+        double y = 1.55 + 0.08 * Noise.fbm2D(x * 0.03, z * 0.03, 3, 2.0, 0.5);
+        y += berm(z, -RangeCourse.yards(200), 7.5, 0.45);
+        y += berm(z, -RangeCourse.yards(300), 8.5, 0.55);
+        y += berm(z, -RangeCourse.yards(600), 11.0, 0.7);
+        if (z < -1000) {
+            y -= 5.5 * smoothstep(-1050, -1500, z);
+        }
+        return y;
+    }
+
+    /** Rolling Surrey heath, no desert ridge. */
+    private double bisleyHeight(double x, double z) {
+        double roll = 2.4 * Math.sin(z * 0.0034) * Math.exp(-(x * x) / 900000.0);
+        double heath = 1.1 * Noise.fbm2D(x * 0.004, z * 0.004, 3, 2.0, 0.5);
+        double far = 5.0 * Math.exp(-(z + 980.0) * (z + 980.0) / (2.0 * 520.0 * 520.0));
+        return 6.5 + roll + heath + far;
+    }
+
+    private static double berm(double z, double center, double width, double height) {
+        double d = z - center;
+        return height * Math.exp(-(d * d) / (2.0 * width * width));
     }
 
     private static double smoothstep(double edge0, double edge1, double x) {
@@ -185,7 +222,12 @@ public final class Terrain implements TerrainFunction {
         double moisture = Noise.fbm2D(x * 0.009, z * 0.009, 4, 2.03, 0.5) * 0.5 + 0.5;
         double slope = Math.abs(heightAt(x + 3, z) - heightAt(x - 3, z)) * 0.5
                 + Math.abs(heightAt(x, z + 3) - heightAt(x, z - 3)) * 0.5;
-        float rockMix = (float) BallisticMath.clamp(slope * 0.65 + (y - 48) * 0.010, 0, 0.78);
+        if (course == RangeCourse.CAMP_PERRY && z < -1050) {
+            return new Color(0.45f, 0.58f, 0.66f, 1f);
+        }
+        float rockMix = course == RangeCourse.DAGGER
+                ? (float) BallisticMath.clamp(slope * 0.65 + (y - 48) * 0.010, 0, 0.78)
+                : (float) BallisticMath.clamp(slope * 0.15, 0, 0.25);
         float dryMix = (float) BallisticMath.clamp(moisture * 0.9 - 0.15, 0, 0.72);
 
         Color color = new Color(lowGrass).lerp(dryGrass, dryMix);
@@ -215,7 +257,11 @@ public final class Terrain implements TerrainFunction {
             double z = centerZ + Math.sin(a) * radius;
             double ridge = Noise.ridge2D(Math.cos(a) * 3.1 + 10, Math.sin(a) * 3.1 + 10, 5);
             double peaks = Noise.fbm2D(Math.cos(a) * 1.7 + 4, Math.sin(a) * 1.7 + 4, 4, 2, 0.55);
-            float top = (float) (90 + ridge * 260 + peaks * 120);
+            float top = course == RangeCourse.CAMP_PERRY
+                    ? (float) (3 + ridge * 5)
+                    : course == RangeCourse.BISLEY
+                    ? (float) (18 + ridge * 36 + peaks * 16)
+                    : (float) (90 + ridge * 260 + peaks * 120);
             float bottom = -90;
 
             float inset = (float) (0.44 + 0.10 * Noise.value2D(i * 0.22, 1.7));

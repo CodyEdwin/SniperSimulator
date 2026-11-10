@@ -57,6 +57,16 @@ public final class Atmosphere {
         return new Atmosphere(1850, 815.0, 24.0, 0.22, 34.5);
     }
 
+    /** Camp Perry, Ottawa County, on the Lake Erie shore. July match weather. */
+    public static Atmosphere campPerry() {
+        return new Atmosphere(174, 1016.0, 26.0, 0.68, 41.54);
+    }
+
+    /** Bisley Camp, Surrey. */
+    public static Atmosphere bisley() {
+        return new Atmosphere(80, 1009.0, 16.0, 0.75, 51.31);
+    }
+
     private static double clamp(double v, double a, double b) {
         return v < a ? a : (v > b ? b : v);
     }

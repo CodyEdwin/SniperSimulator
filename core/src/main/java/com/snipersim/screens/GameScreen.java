@@ -29,6 +29,7 @@ import com.snipersim.util.BallisticMath;
 import com.snipersim.weapons.Loadout;
 import com.snipersim.weapons.Weapon;
 import com.snipersim.weapons.WeaponCatalog;
+import com.snipersim.world.RangeCourse;
 import com.snipersim.world.RangeTarget;
 import com.snipersim.world.Shot;
 import com.snipersim.world.World;
@@ -128,6 +129,13 @@ public final class GameScreen extends ScreenAdapter {
     private final Vector3 bulletCamVel = new Vector3();
 
     private int score;
+    private int matchStage;
+    private int matchShots;
+    private float matchTime;
+    private int matchScore;
+    private int matchX;
+    private boolean matchDone;
+    private String[] rangeCard = new String[0];
     private int shotCount;
     private int hitCount;
     private int bestRing;
@@ -232,7 +240,11 @@ public final class GameScreen extends ScreenAdapter {
         this.smokeTest = smokeTest;
         this.loadout = loadout.copy();
         this.android = Gdx.app.getType() == Application.ApplicationType.Android;
-        world = new World();
+        world = new World(this.loadout.range);
+        if (world.course.competition) {
+            matchTime = MATCH[0].seconds;
+        }
+        buildRangeCard();
         shooterEye = new Vector3(world.shooterEye);
         camera = new PerspectiveCamera(BASE_FOV, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.position.set(shooterEye);
@@ -322,6 +334,12 @@ public final class GameScreen extends ScreenAdapter {
         }
         LookInput.endFrame();
 
+        if (!paused && !briefing && world.course.competition && !matchDone) {
+            matchTime -= delta;
+            if (matchTime <= 0) {
+                advanceMatch();
+            }
+        }
         if (!paused) {
             updateWeapon(delta);
             updateShots(delta);
@@ -594,7 +612,9 @@ public final class GameScreen extends ScreenAdapter {
         if (timeSinceShot < 1.3f) {
             stability = 1.25f;
         }
-        float amp = 0.00022f * stability
+        float swayScale = world.course.competition && !briefing && !matchDone
+                ? MATCH[matchStage].sway : 1f;
+        float amp = 0.00022f * stability * swayScale
                 * (holdingBreath ? 0.16f : 1f)
                 * (1f + (1f - breath) * 1.5f);
         float swayYaw = amp * ((float) Math.sin(swayTime * 1.13 + 0.4)
@@ -643,6 +663,10 @@ public final class GameScreen extends ScreenAdapter {
 
     private void fire() {
         if (briefing || paused || !boltReady || bulletCamActive) {
+            return;
+        }
+        if (world.course.competition && (matchDone || matchTime <= 0
+                || matchShots >= MATCH[matchStage].shots)) {
             return;
         }
 
@@ -699,6 +723,13 @@ public final class GameScreen extends ScreenAdapter {
                 weapon.magazineSize);
         renderer.syncRifle(camera);
         shot.muzzle.set(renderer.muzzleWorld());
+        if (world.course.competition) {
+            shot.matchStage = matchStage;
+            matchShots++;
+            if (matchShots >= MATCH[matchStage].shots) {
+                advanceMatch();
+            }
+        }
         shots.add(shot);
         if (shots.size() > 14) {
             Shot removed = shots.remove(0);
@@ -833,7 +864,16 @@ public final class GameScreen extends ScreenAdapter {
 
         if (steel) {
             shot.target.registerHit();
-            score += shot.points;
+            if (shot.matchStage >= 0) {
+                if (shot.target == liveMatchTarget(shot.matchStage) && shot.ring >= 5) {
+                    matchScore += shot.ring;
+                    if (isMatchX(shot)) {
+                        matchX++;
+                    }
+                }
+            } else {
+                score += shot.points;
+            }
             hitCount++;
             bestRing = Math.max(bestRing, shot.ring);
             longestHit = Math.max(longestHit, distance);
@@ -845,9 +885,10 @@ public final class GameScreen extends ScreenAdapter {
             double offset = Math.hypot(shot.impactPoint.x - centerX,
                     shot.impactPoint.y - shot.target.baseY);
             double moa = Math.toDegrees(Math.atan2(offset, Math.max(1, distance))) * 60.0;
+            int shown = shot.matchStage >= 0 ? shot.ring : shot.points;
             showToast(true,
                     String.format(Locale.ROOT, "%s  ·  RING %d  ·  +%d",
-                            shot.target.label(), shot.ring, shot.points),
+                            shot.target.label(), shot.ring, shown),
                     String.format(Locale.ROOT, "%.0f M  ·  TOF %.2f S  ·  %.0f FT-LB  ·  %.2f MOA",
                             distance, shot.hitTime, BallisticMath.joulesToFootPounds(energy), moa),
                     "");
@@ -1217,6 +1258,21 @@ public final class GameScreen extends ScreenAdapter {
             s.dope = dope;
         }
         s.briefing = briefing;
+        s.rangeCard = rangeCard;
+        s.missionBrief = world.course.blurb;
+        s.rangeTitle = world.course.title;
+        if (world.course.competition) {
+            if (matchDone) {
+                s.matchLine = String.format(Locale.ROOT, "MATCH COMPLETE  %d-%dX", matchScore, matchX);
+            } else {
+                int sec = Math.max(0, (int) Math.ceil(matchTime));
+                Stage stage = MATCH[matchStage];
+                s.matchLine = String.format(Locale.ROOT, "%s   %d/%d   %d:%02d   %d-%dX",
+                        stage.name, matchShots, stage.shots, sec / 60, sec % 60, matchScore, matchX);
+            }
+        } else {
+            s.matchLine = "";
+        }
         s.paused = paused;
         s.helpVisible = helpVisible;
         s.bulletCam = bulletCamActive;
@@ -1363,6 +1419,83 @@ public final class GameScreen extends ScreenAdapter {
     @Override
     public void resume() {
     }
+
+    public RangeCourse course() {
+        return world.course;
+    }
+
+    private void buildRangeCard() {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        for (com.snipersim.world.RangeTarget target : world.targets) {
+            if (Math.abs(target.baseX) > 0.2f) {
+                continue;
+            }
+            lines.add(String.format(Locale.ROOT, "%.0f m  %s", target.distance, target.label()));
+        }
+        rangeCard = lines.toArray(new String[0]);
+    }
+
+    private void advanceMatch() {
+        if (matchDone) {
+            return;
+        }
+        matchStage++;
+        matchShots = 0;
+        if (matchStage >= MATCH.length) {
+            matchDone = true;
+            showToast(true, "MATCH COMPLETE",
+                    String.format(Locale.ROOT, "%d-%dX", matchScore, matchX), "");
+            toastTimer = 6f;
+            return;
+        }
+        matchTime = MATCH[matchStage].seconds;
+        showToast(false, MATCH[matchStage].name,
+                MATCH[matchStage].shots + " SHOTS", "");
+        toastTimer = 2.5f;
+    }
+
+    private com.snipersim.world.RangeTarget liveMatchTarget(int stage) {
+        float meters = MATCH[stage].meters;
+        com.snipersim.world.RangeTarget best = null;
+        for (com.snipersim.world.RangeTarget target : world.targets) {
+            if (Math.abs(target.baseX) > 0.2f) {
+                continue;
+            }
+            if (best == null || Math.abs(target.distance - meters) < Math.abs(best.distance - meters)) {
+                best = target;
+            }
+        }
+        return best;
+    }
+
+    private static boolean isMatchX(Shot shot) {
+        double dx = shot.impactPoint.x - shot.target.xAt(shot.fireMissionTime + shot.hitTime);
+        double dy = shot.impactPoint.y - shot.target.baseY;
+        return Math.hypot(dx, dy) / (shot.target.width * 0.5) <= 0.081;
+    }
+
+    private static final class Stage {
+        final String name;
+        final float meters;
+        final int shots;
+        final float seconds;
+        final float sway;
+
+        Stage(String name, float meters, int shots, float seconds, float sway) {
+            this.name = name;
+            this.meters = meters;
+            this.shots = shots;
+            this.seconds = seconds;
+            this.sway = sway;
+        }
+    }
+
+    private static final Stage[] MATCH = {
+            new Stage("200 YD STANDING SLOW", RangeCourse.yards(200), 10, 600f, 4.2f),
+            new Stage("200 YD RAPID SITTING", RangeCourse.yards(200), 10, 60f, 2.0f),
+            new Stage("300 YD RAPID PRONE", RangeCourse.yards(300), 10, 70f, 1.15f),
+            new Stage("600 YD PRONE SLOW", RangeCourse.yards(600), 20, 1200f, 0.85f)
+    };
 
     private static final class HitResult {
         RangeTarget target;
