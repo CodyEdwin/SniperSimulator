@@ -40,7 +40,7 @@ public final class ModelFactory {
         Material material = new Material(
                 TextureAttribute.createDiffuse(texture),
                 ColorAttribute.createDiffuse(Color.WHITE),
-                ColorAttribute.createEmissive(new Color(0.35f, 0.35f, 0.33f, 1f)),
+                ColorAttribute.createEmissive(new Color(0.08f, 0.08f, 0.07f, 1f)),
                 IntAttribute.createCullFace(GL20.GL_NONE));
         return builder().createBox(width, height, depth, material, USAGE | VertexAttributes.Usage.TextureCoordinates);
     }
@@ -114,8 +114,8 @@ public final class ModelFactory {
             int y = (i * 47 + 11) % size;
             pixmap.fillCircle(x, y, 2 + (i % 4));
         }
-        Texture texture = new Texture(pixmap, true);
-        texture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         pixmap.dispose();
         return texture;
     }
@@ -123,18 +123,22 @@ public final class ModelFactory {
     private static Texture buildPaperTarget() {
         int size = 256;
         Pixmap pixmap = new Pixmap(size, size, Pixmap.Format.RGBA8888);
-        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
+        pixmap.setColor(0.94f, 0.93f, 0.86f, 1f);
         pixmap.fill();
-        pixmap.setColor(0.08f, 0.08f, 0.08f, 1f);
-        pixmap.fillCircle(size / 2, size / 2, 78);
-        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
-        pixmap.fillCircle(size / 2, size / 2, 46);
-        pixmap.setColor(0.08f, 0.08f, 0.08f, 1f);
-        pixmap.fillCircle(size / 2, size / 2, 28);
-        pixmap.setColor(0.96f, 0.95f, 0.90f, 1f);
-        pixmap.fillCircle(size / 2, size / 2, 12);
-        Texture texture = new Texture(pixmap, true);
-        texture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        pixmap.setColor(0.05f, 0.05f, 0.05f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 108);
+        pixmap.setColor(0.94f, 0.93f, 0.86f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 86);
+        pixmap.setColor(0.05f, 0.05f, 0.05f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 64);
+        pixmap.setColor(0.94f, 0.93f, 0.86f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 42);
+        pixmap.setColor(0.05f, 0.05f, 0.05f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 22);
+        pixmap.setColor(0.82f, 0.16f, 0.10f, 1f);
+        pixmap.fillCircle(size / 2, size / 2, 8);
+        Texture texture = new Texture(pixmap);
+        texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
         pixmap.dispose();
         return texture;
     }

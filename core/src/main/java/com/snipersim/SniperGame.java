@@ -1,8 +1,8 @@
 package com.snipersim;
 
 import com.badlogic.gdx.Game;
-import com.snipersim.screens.CatalogScreen;
 import com.snipersim.screens.GameScreen;
+import com.snipersim.screens.LoadingScreen;
 import com.snipersim.weapons.Loadout;
 
 /** libGDX application shell. */
@@ -18,7 +18,7 @@ public final class SniperGame extends Game {
         if (smokeTest) {
             setScreen(new GameScreen(this, true, Loadout.issued()));
         } else {
-            setScreen(new CatalogScreen(this, null, Loadout.issued()));
+            setScreen(new LoadingScreen(this, LoadingScreen.Job.BOOT, null, null));
         }
     }
 

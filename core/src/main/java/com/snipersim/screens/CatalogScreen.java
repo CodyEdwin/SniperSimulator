@@ -389,16 +389,7 @@ public final class CatalogScreen extends ScreenAdapter {
     }
 
     private void deploy() {
-        if (range == null || range.course() != loadout.range) {
-            GameScreen previous = range;
-            game.setScreen(new GameScreen(game, false, loadout));
-            if (previous != null) {
-                previous.dispose();
-            }
-        } else {
-            range.applyLoadout(loadout);
-            game.setScreen(range);
-        }
+        game.setScreen(new LoadingScreen(game, LoadingScreen.Job.RANGE, loadout.copy(), range));
         dispose();
     }
 

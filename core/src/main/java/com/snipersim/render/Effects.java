@@ -41,6 +41,7 @@ public final class Effects {
     private final TextureRegion pixelRegion;
     private final Vector3 projected = new Vector3();
     private final Vector3 toPoint = new Vector3();
+    private final Vector3 ahead = new Vector3();
     private final Vector3 bulletPos = new Vector3();
     private final Vector3 velocity = new Vector3();
 
@@ -189,8 +190,8 @@ public final class Effects {
         if (alpha <= 0.01f) {
             return;
         }
-        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE);
-        batch.setColor(1f, 0.72f, 0.28f, Math.min(1f, alpha * 2.4f));
+        batch.setBlendFunction(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        batch.setColor(0.02f, 0.02f, 0.015f, Math.min(1f, alpha * 2.8f));
         float prevX = 0;
         float prevY = 0;
         boolean hasPrev = false;
@@ -211,7 +212,30 @@ public final class Effects {
                 continue;
             }
             if (hasPrev) {
-                drawSegment(batch, prevX, prevY, projected.x, projected.y, 3.2f, width, height);
+                drawSegment(batch, prevX, prevY, projected.x, projected.y, 7f, width, height);
+            }
+            prevX = projected.x;
+            prevY = projected.y;
+            hasPrev = true;
+        }
+        batch.setColor(1f, 0.78f, 0.22f, Math.min(1f, alpha * 3f));
+        hasPrev = false;
+        if (shot.muzzle.len2() > 0 && project(camera, shot.muzzle, width, height)) {
+            prevX = projected.x;
+            prevY = projected.y;
+            hasPrev = true;
+        }
+        for (int i = 0; i < shot.trajectory.size(); i += stride) {
+            if (shot.trajectory.time(i) > maxTime) {
+                break;
+            }
+            visualPosition(shot, shot.trajectory.time(i), toPoint);
+            if (!project(camera, toPoint, width, height)) {
+                hasPrev = false;
+                continue;
+            }
+            if (hasPrev) {
+                drawSegment(batch, prevX, prevY, projected.x, projected.y, 2.6f, width, height);
             }
             prevX = projected.x;
             prevY = projected.y;
@@ -259,8 +283,8 @@ public final class Effects {
     }
 
     private boolean project(PerspectiveCamera camera, Vector3 world, int width, int height) {
-        toPoint.set(world).sub(camera.position);
-        if (toPoint.dot(camera.direction) <= 0.02f) {
+        ahead.set(world).sub(camera.position);
+        if (ahead.dot(camera.direction) <= 0.02f) {
             return false;
         }
         projected.set(world);

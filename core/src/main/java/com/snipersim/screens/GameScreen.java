@@ -871,11 +871,10 @@ public final class GameScreen extends ScreenAdapter {
         if (steel) {
             shot.target.registerHit();
             if (shot.matchStage >= 0) {
-                if (shot.target == liveMatchTarget(shot.matchStage) && shot.ring >= 5) {
-                    matchScore += shot.ring;
-                    if (isMatchX(shot)) {
-                        matchX++;
-                    }
+                matchScore += shot.ring;
+                score += shot.ring;
+                if (shot.target == liveMatchTarget(shot.matchStage) && isMatchX(shot)) {
+                    matchX++;
                 }
             } else {
                 score += shot.points;
@@ -1327,6 +1326,7 @@ public final class GameScreen extends ScreenAdapter {
         }
 
         Gdx.gl.glViewport(0, 0, width, height);
+        renderTracer(showRifle);
         hud.render(hudState, delta);
     }
 
@@ -1342,8 +1342,11 @@ public final class GameScreen extends ScreenAdapter {
         Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
         Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
         renderer.renderWorld(camera, world, showRifle);
-        renderer.renderEffects(camera, width, height, shots,
-                showRifle ? muzzleFlash : 0f);
+    }
+
+    private void renderTracer(boolean showRifle) {
+        com.badlogic.gdx.Gdx.gl.glDisable(com.badlogic.gdx.graphics.GL20.GL_DEPTH_TEST);
+        renderer.renderEffects(camera, width, height, shots, showRifle ? muzzleFlash : 0f);
     }
 
     // ------------------------------------------------------------- utility
